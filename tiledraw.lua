@@ -9,33 +9,28 @@ local showLeftmost = true
 local showSprites = true
 local grayscale = false
 
--- Create lookup table for octal to binary
-local oct2bin = {
-    ['0'] = '000',
-    ['1'] = '001',
-    ['2'] = '010',
-    ['3'] = '011',
-    ['4'] = '100',
-    ['5'] = '101',
-    ['6'] = '110',
-    ['7'] = '111'
-}
-local function getOct2bin(a)
-    return oct2bin[a]
-end
+local charMap = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'}
 
-local function convertBin(n)
-    local s = string.format('%o', n)
-    -- print("octal: "..s)
-    s = s:gsub('.', getOct2bin)
-    -- print("subbed: "..s)
+local function toString(num, base, length)
     
-    s = string.rep('0', 9 - #s)..s
-    -- print("+ rep: "..s)
-    s = s:sub(2)
-    -- print("final: "..s)
+    base = base or 10
     
-    return s
+    if not num or base < 0 or base > 16 then return end
+    
+    if num == 0 then return ("0"):rep(length) end
+    
+    if num < 0 then return "-"..toString(-num, base, length) end
+    
+    local ret = ""
+
+    while num > 0 do
+        ret = charMap[num % base + 1]..ret
+        num = math.floor(num / base)
+    end
+    
+    if length then ret = (("0"):rep(length - #ret))..ret end
+    
+    return ret
 end
 
 local function mergePlanes(plane0, plane1)
@@ -58,8 +53,8 @@ function mod.getTileData(patternTable, tile)
         local plane1 = ppu.readbyte(baseAddr + 8 + i)
         -- print(string.format("%04X", baseAddr + i))
         -- print(string.format("%04X", baseAddr + i + 8))
-        --gui.text(10, 20 + 20 * i, convertBin(plane0, 8))
-        --gui.text(10, 30 + 20 * i, convertBin(plane1, 8))
+        --gui.text(10, 20 + 20 * i, toString(plane0, 2, 8))
+        --gui.text(10, 30 + 20 * i, toString(plane1, 2, 8))
         -- gui.text(80, 20 + 10 * i, mergePlanes(plane0, plane1))
         ret[i] = mergePlanes(plane0, plane1)
     end
