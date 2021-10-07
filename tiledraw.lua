@@ -65,6 +65,7 @@ end
 local function getColor(paletteIndex)
     -- print(string.format("getColor: %02X", paletteIndex))
     local color = ppu.readbyte(0x3F00 + paletteIndex)
+    if grayscale then color = bit.band(color, 0x30) end
     --if paletteIndex ~= 0x11 then
      --   gui.text(80, 100, string.format("getColor: %02X -> %02X", paletteIndex, color))
     --end
@@ -105,11 +106,6 @@ end
 function mod.drawTile(y, attributes, index, x)
 
     if not showSprites then
-        return
-    end
-    
-    if grayscale then
-        gui.text(100, 30, "grayscale mode is not currently supported :(")
         return
     end
 
@@ -162,6 +158,7 @@ end
 function mod.updatePpuMask(value)
     showSprites = bit.band(value, 0x10) ~= 0
     showLeftmost = bit.band(value, 0x04) ~= 0
+    grayscale = bit.band(value, 0x01) ~= 0
 end
 
 return mod
