@@ -15,7 +15,7 @@ local function toString(num, base, length)
     
     base = base or 10
     
-    if not num or base < 0 or base > 16 then return end
+    if not num or base < 2 or base > 16 then return end
     
     if num == 0 then return ("0"):rep(length) end
     
