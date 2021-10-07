@@ -103,6 +103,7 @@ end
 -- Currently only supports 8x8 mode.
 -- Priority bit is based on color rather than opacity of pixel.
 -- The back-priority sprite obscurring quirk is not implemented.
+-- Tint bits are not implemented--they actually affect NTSC signal generation, but FCEUX stores them in an extended palette I think.
 function mod.drawTile(y, attributes, index, x)
 
     if not showSprites then
@@ -110,7 +111,7 @@ function mod.drawTile(y, attributes, index, x)
     end
 
     if spriteSize == 1 then
-        gui.text(100, 30, "8x16 mode is not currently supported :(")
+        gui.text(30, 30, "8x16 mode is not currently supported :(")
         return
     end
 
