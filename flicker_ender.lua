@@ -1,6 +1,7 @@
 local tdraw = require("tiledraw")
 
 debugMode = arg:find("--debug")
+local canonicalOrder = arg:find("--canonical--ordering")
 
 local HEALTH_BAR_Y_TABLE = 0xCFE2
 local HEALTH_BAR_TILES = 0xCFE9
@@ -176,7 +177,7 @@ local function drawSpritesNormal()
     
     local frameCount = memory.readbyte(0x1C)
     
-    if frameCount % 2 == 0 then
+    if frameCount % 2 == 0 and not canonicalOrder then
         -- Draw sprites forwards
         for i = 0, 0xF do
             drawPlayerSprite(i)
