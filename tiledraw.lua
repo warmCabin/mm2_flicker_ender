@@ -112,7 +112,7 @@ end
 -- Priority bit is based on color rather than opacity of pixel.
 -- The back-priority sprite obscurring quirk is not implemented.
 -- Tint bits are not implemented--they actually affect NTSC signal generation, but FCEUX stores them in an extended palette I think.
--- TODO: Are tiles invisible when they should be?
+-- Are tiles invisible when they should be?
 function mod.drawTile(y, attributes, index, x)
 
     if not showSprites then
@@ -152,7 +152,7 @@ end
 
 -- TODO: lower index == higher priority on NES, so I might want to draw this in reverse order.
 function mod.renderBuffer()
-    local offset = debugMode and 10 or 0
+    local offset = debugMode and 0 or 0
     for i, entry in ipairs(oam) do
         mod.drawTile(entry.y + offset, entry.attributes, entry.index, entry.x + offset)
     end
