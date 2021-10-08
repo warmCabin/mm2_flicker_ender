@@ -5,6 +5,18 @@ debugMode = true
 local HEALTH_BAR_Y_TABLE = 0xCFE2
 local HEALTH_BAR_TILES = 0xCFE9
 
+local SPRITE_FLAGS = 0x0420
+local SPRITE_IDS = 0x0400
+
+local SPRITE_MAIN_GFX_PTRS_LO = 0xF980
+local SPRITE_MAIN_GFX_PTRS_HI = 0xFA80
+local SPRITE_FRAME_GFX_PTRS_LO = 0x8100
+local SPRITE_FRAME_GFX_PTRS_HI = 0x8300
+local SPRITE_FRAME_NUM = 0x06A0
+local SPRITE_FRAME_POS_OFFSET_PTRS_LO = 0x8400
+local SPRITE_FRAME_POS_OFFSET_PTRS_HI = 0x8500
+local TILE_OFFSET_SUBTRACTION_TABLE = 0x8600
+
 local gameState = 0
 
 -- Another approach to this problem might be to force $06 (OAM counter) to always be 0 so the game always draws,
@@ -50,14 +62,111 @@ local function drawEnergyBars()
     
 end
 
+local function getPtr(hiTable, loTable, index)
+    return bit.bor(bit.lshift(memory.readbyte(hiTable + index), 8), memory.readbyte(loTable + index))
+end
+
+local function drawGfx(gfxPtr, spriteSlot, attributeOverride)
+    local length = memory.readbyte(gfxPtr)
+    local posSeq = memory.readbyte(gfxPtr + 1)
+    local posPtr = getPtr(SPRITE_FRAME_POS_OFFSET_PTRS_HI, SPRITE_FRAME_POS_OFFSET_PTRS_LO, posSeq)
+    local baseX = memory.readbyte(0x0460 + spriteSlot) - memory.readbyte(0x1F) -- world pos - scroll
+    local baseY = memory.readbyte(0x04A0)
+    local spriteFlags = memory.readbyte(SPRITE_FLAGS + spriteSlot)
+    local spriteFlip = bit.band(spriteFlags, 0x40)
+    local j = 2
+    
+    for i = 1, length do
+        local tile = memory.readbyte(gfxPtr + j)
+        local y = bit.band(memory.readbyte(posPtr + j) + baseY, 0xFF) -- 8 bit addition
+        j = j + 1
+        local attributes = memory.readbyte(gfxPtr + j)
+        if attributeOverride ~= 0 then
+            local newAttr = bit.bor(bit.band(attr, 0xF0), attributeOverride)
+            if newAttr ~= 0 then
+                attributes = newAttr
+            end
+        end
+        -- Flip tile if gfx data says tile is flipped.
+        attributes = bit.bxor(spriteFlip, attributes)
+        local xOffset = memory.readbyte(posPtr + j)
+        if spriteFlip ~= 0 then
+            -- Flipped draw (need to compute alternate X coord)
+            -- This table just represents the operation -(x + 8), but might as well do it authentically.
+            xOffset = memory.readbyte(TILE_OFFSET_SUBTRACTION_TABLE, x)
+        end
+        -- 8-bit addition
+        local x = baseX + xOffset
+        local carry = x > 0xFF
+        x = bit.band(x, 0xFF) 
+        --if carry ~= (xOffset >= 0x80) then
+            -- No overflow; tile onscreen
+            -- print(string.format("Draw tile: %02X, %02X, %02X, %02X", y, attributes, tile, x))
+            tdraw.bufferDraw(y, attributes, tile, x)
+        --else
+            -- Overflow; tile offscreen
+        --end
+    end
+end
+
+local function drawPlayerSprite(index)
+
+end
+
+local function drawEnemySprite(slot)
+    local flags = memory.readbyte(SPRITE_FLAGS + slot)
+    
+    if flags >= 0x80 then return end
+    
+    -- might pass some of these as params
+    local id = memory.readbyte(SPRITE_IDS + slot)
+    local ptr = getPtr(SPRITE_MAIN_GFX_PTRS_HI, SPRITE_MAIN_GFX_PTRS_LO, slot)
+    local frame = memory.readbyte(SPRITE_FRAME_NUM + slot)
+    local frameId = memory.readbyte(ptr + frame)
+    
+    -- There are some details here in the real code concerning animation timers which we don't care about.
+    
+    if frameId == 0 then return end
+    
+    if bit.band(flags, 0x20) ~= 0 then return end
+    
+    ptr = getPtr(SPRITE_FRAME_GFX_PTRS_HI, SPRITE_FRAME_GFX_PTRS_LO, id)
+    local attributeOverride = memory.readbyte(0x0100 + slot)
+    drawGfx(ptr, slot, flags, attributeOverride)
+end
+
 local normalGfx = false
 local frozenGfx = false
 local pauseMenuGfx = false
 local pauseMenuInit = false
 
 local function drawSpritesNormal()
+
+    -- Need bank A loaded! Do this on the exec callback?
+
     tdraw.clearBuffer()
-    drawEnergyBars()
+    
+    local frameCount = memory.readbyte(0x1C)
+    
+    if frameCount % 2 == 0 then
+        -- Draw sprites forwards
+        for i = 0, 0xF do
+            drawPlayerSprite(i)
+        end
+        for i = 0x10, 0x1F do
+            drawEnemySprite(i)
+        end
+        drawEnergyBars()
+    else
+        -- Draw sprites backwards
+        drawEnergyBars()
+        for i = 0x1F, 0x10, -1 do
+            drawEnemySprite(i)
+        end
+        for i = 0xF, 0, -1 do
+            drawPlayerSprite(i)
+        end
+    end
 end
 
 local function drawSpritesFrozen()
