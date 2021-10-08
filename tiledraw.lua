@@ -91,8 +91,9 @@ end
 
 local function drawRow(x, y, row, attributes)
     local palette = bit.band(attributes, 3)
+    local flipX = bit.band(attributes, 0x40) ~= 0
     for i = 1, #row do
-        local c = row:sub(i, i)
+        local c = flipX and row:sub(#row - i + 1, #row - i + 1) or row:sub(i, i)
         if shouldDraw(x + i - 1, y, c, attributes) then
             local paletteIndex = 0x10 + palette * 4 + tonumber(c)
             gui.pixel(x + i - 1, y, getColor(paletteIndex))
@@ -100,7 +101,6 @@ local function drawRow(x, y, row, attributes)
     end
 end
 
--- Flip bits are not implemented yet!
 -- Currently only supports 8x8 mode.
 -- Priority bit is based on color rather than opacity of pixel.
 -- The back-priority sprite obscurring quirk is not implemented.
@@ -123,8 +123,9 @@ function mod.drawTile(y, attributes, index, x)
     end
 
     local tileData = mod.getTileData(patternTable, index)
+    local flipY = bit.band(attributes, 0x80) ~= 0
     for i = 0, 7 do
-        local row = tileData[i]
+        local row = flipY and tileData[7 - i] or tileData[i]
         drawRow(x, y + 1 + i, row, attributes)
     end
 
