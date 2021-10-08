@@ -73,7 +73,7 @@ local function drawGfx(gfxPtr, spriteSlot, spriteFlags, attributeOverride)
     local length = memory.readbyte(gfxPtr)
     local posSeq = memory.readbyte(gfxPtr + 1)
     local posPtr = getPtr(SPRITE_FRAME_POS_OFFSET_PTRS_HI, SPRITE_FRAME_POS_OFFSET_PTRS_LO, posSeq)
-    local baseX = memory.readbyte(0x0460 + spriteSlot) - memory.readbyte(0x1F) -- world pos - scroll
+    local baseX = bit.band(memory.readbyte(0x0460 + spriteSlot) - memory.readbyte(0x1F), 0xFF) -- world pos - scroll
     local baseY = memory.readbyte(0x04A0 + spriteSlot)
     local spriteFlip = bit.band(spriteFlags, 0x40)
     local j = 2
@@ -98,6 +98,7 @@ local function drawGfx(gfxPtr, spriteSlot, spriteFlags, attributeOverride)
         local xOffset = memory.readbyte(posPtr + j)
         if debugMode then print(string.format("sprite flip: %02X. new attr: %02x", spriteFlip, attributes)) end
         if debugMode then print(string.format("base x offset: %02X", xOffset)) end
+        if debugMode then print(string.format("pos x: %02X", baseX)) end
         if spriteFlip ~= 0 then
             -- Flipped draw (need to compute alternate X coord)
             -- This table just represents the operation -(x + 8), but might as well do it authentically.
@@ -112,13 +113,13 @@ local function drawGfx(gfxPtr, spriteSlot, spriteFlags, attributeOverride)
         if debugMode then print("carry: "..tostring(carry)) end
         x = bit.band(x, 0xFF) 
         if debugMode then print(string.format("band x: %02X", x)) end
-        --if carry ~= (xOffset >= 0x80) then
+        if carry == (xOffset >= 0x80) then
             -- No overflow; tile onscreen
             if debugMode then print(string.format("Draw tile: %02X, %02X, %02X, %02X", y, attributes, tile, x)) end
             tdraw.bufferDraw(y, attributes, tile, x)
-        --else
+        else
             -- Overflow; tile offscreen
-        --end
+        end
         j = j + 1
     end
 end
