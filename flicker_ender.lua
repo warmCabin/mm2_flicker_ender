@@ -107,7 +107,6 @@ local function drawGfx(gfxPtr, spriteSlot, spriteFlags, attributeOverride)
             -- This table just represents the operation -(x + 8), but might as well do it authentically.
             xOffset = memory.readbyte(TILE_OFFSET_SUBTRACTION_TABLE + xOffset)
         end
-        
         if debugMode then print(string.format("x offset: %02X", xOffset)) end
         -- 8-bit addition
         local x = baseX + xOffset
@@ -133,7 +132,7 @@ end
 
 local function drawEnemySprite(slot)
 
-    -- if slot ~= 0x1E then return end
+    -- if slot ~= 0x1D then return end
 
     local flags = memory.readbyte(SPRITE_FLAGS + slot)
     if debugMode then  print(string.format("DRAWING SLOT %02X (%02X)", slot, flags)) end
