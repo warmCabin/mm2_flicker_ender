@@ -41,8 +41,6 @@ local function drawEnergyBar(energy, x, palette)
 end
 
 local function drawEnergyBars()
-
-    -- if true then return end
     
     local health = memory.readbyte(0x06C0)
     drawEnergyBar(health, 0x18, 1)
@@ -136,9 +134,9 @@ local function drawEnemySprite(slot)
     -- if slot ~= 0x1D then return end
 
     local flags = memory.readbyte(SPRITE_FLAGS + slot)
-    if debugMode then  print(string.format("DRAWING SLOT %02X (%02X)", slot, flags)) end
     
     if flags < 0x80 then return end
+    if debugMode then  print(string.format("DRAWING SLOT %02X (%02X)", slot, flags)) end
     
     if debugMode then print("(alive)") end
     
@@ -170,8 +168,6 @@ local pauseMenuGfx = false
 local pauseMenuInit = false
 
 local function drawSpritesNormal()
-
-    -- Need bank A loaded! Do this on the exec callback?
 
     --tdraw.clearBuffer()
     
@@ -219,6 +215,7 @@ local function drawSpritesMenuPopup()
     end
 end
 
+-- TODO: gui.register?
 local function drawSprites()
     
     prevGameState = gameState
@@ -228,6 +225,7 @@ local function drawSprites()
 
     -- Sometimes appears one frame before it's supposed to in boss fights.
     -- Has to do with that one lag frame you sometimes get. Is there another callback to look for?
+    -- Health bars persist during the end credits.
     
     if gameState == 78 or gameState == 120 or gameState == 129 or gameState == 195 or gameState == 197 then
         if debugMode then gui.text(100, 10, "Get equipped/Castle/Death") end
@@ -260,7 +258,6 @@ end
 
 local function normalGfxRoutineCallback(address, bank)
     normalGfx = true
-    -- debugger.hitbreakpoint()
     local status, err = pcall(drawSpritesNormal)
     if not status then
         print(string.format("Error! %s", err))
