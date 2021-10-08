@@ -76,6 +76,11 @@ end
 
 local function shouldDraw(x, y, c, attributes)
     
+    -- Is pixel on screen? gui.pixel will have a conniption if not.
+    if y < 0 or y >= 240 or x < 0 or x >= 256 then
+        return false
+    end
+    
     -- Color 0 is transparent
     if c == "0" then return false end
     
@@ -109,11 +114,6 @@ end
 -- Tint bits are not implemented--they actually affect NTSC signal generation, but FCEUX stores them in an extended palette I think.
 -- TODO: Are tiles invisible when they should be?
 function mod.drawTile(y, attributes, index, x)
-
-    -- TODO: Depending on how partially onscreen sprites behave, I may need to do this check on a per-pixel basis.
-    if y < 0 or y >= 232 or x < 0 or x >= 249 then
-        return
-    end
 
     if not showSprites then
         return
