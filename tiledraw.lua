@@ -37,7 +37,9 @@ local function mergePlanes(plane0, plane1)
     local str = ""
     for i = 7, 0, -1 do
         local mask = bit.lshift(1, i)
-        local sum = bit.rshift(bit.band(plane0, mask), i) + bit.rshift(bit.band(plane1, mask), i - 1)
+        local bit0 = bit.rshift(bit.band(plane0, mask), i)
+        local bit1 = bit.rshift(bit.band(plane1, mask), i)
+        local sum = bit.bor(bit0, bit.lshift(bit1, 1))
         str = str..sum
     end
     return str
