@@ -92,6 +92,9 @@ local function drawGfx(gfxPtr, spriteSlot, spriteFlags, attributeOverride)
                 attributes = newAttr
             end
         end
+        if memory.readbyte(0x2A) == 1 then
+            attributes = bit.bor(attributes, 0x20)
+        end
         if debugMode then print(string.format("merged attributes: %02X", attributes)) end
         -- Flip tile if gfx data says tile is flipped.
         attributes = bit.bxor(spriteFlip, attributes)
