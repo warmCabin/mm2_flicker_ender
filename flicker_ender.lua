@@ -1,6 +1,6 @@
 local tdraw = require("tiledraw")
 
-debugMode = false
+debugMode = arg:find("--debug")
 
 local HEALTH_BAR_Y_TABLE = 0xCFE2
 local HEALTH_BAR_TILES = 0xCFE9
