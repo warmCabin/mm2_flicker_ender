@@ -134,6 +134,7 @@ function mod.drawTile(y, attributes, index, x)
 end
 
 local oam = {}
+local prevOam = {}
 
 function mod.bufferDraw(y, attributes, index, x)
     table.insert(oam, {
@@ -145,16 +146,20 @@ function mod.bufferDraw(y, attributes, index, x)
 end
 
 function mod.clearBuffer()
-    for k in ipairs(oam) do
-        oam[k] = nil
-    end
+    oam = {}
+    prevOam = {}
 end
 
--- TODO: lower index == higher priority on NES, so I might want to draw this in reverse order.
 function mod.renderBuffer()
-    local offset = debugMode and 0 or 0
-    for i, entry in ipairs(oam) do
+    local offset = debugMode and 10 or 10
+    -- Draw in reverse order because that's how the NES priotizes sprites
+    for i = #prevOam, 1, -1 do
+        local entry = prevOam[i]
         mod.drawTile(entry.y + offset, entry.attributes, entry.index, entry.x + offset)
+    end
+    if #oam ~= 0 then
+        prevOam = oam
+        oam = {}
     end
 end
 

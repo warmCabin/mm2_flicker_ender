@@ -172,7 +172,7 @@ local function drawSpritesNormal()
 
     -- Need bank A loaded! Do this on the exec callback?
 
-    tdraw.clearBuffer()
+    --tdraw.clearBuffer()
     
     local frameCount = memory.readbyte(0x1C)
     
@@ -199,12 +199,13 @@ local function drawSpritesNormal()
 end
 
 local function drawSpritesFrozen()
-    tdraw.clearBuffer()
+    --tdraw.clearBuffer()
     drawEnergyBars()
+    drawSpritesNormal() -- TODO: This will probably break when I implement drawPlayerSprite
 end
 
 local function drawSpritesPauseMenu()
-    tdraw.clearBuffer()
+    --tdraw.clearBuffer()
 end
 
 local prevGameState = memory.readbyte(0x01FE)
@@ -236,7 +237,7 @@ local function drawSprites()
         normalGfx = false
     elseif frozenGfx then
         if debugMode then gui.text(100, 10, "Frozen gfx") end
-        drawSpritesFrozen()
+        -- drawSpritesFrozen()
         frozenGfx = false
     elseif pauseMenuGfx then
         if debugMode then gui.text(100, 10, "Pause menu gfx") end
@@ -266,6 +267,10 @@ local function normalGfxRoutineCallback(address, bank)
 end
 
 local function timeFrozenGfxRoutineCallback()
+    local status, err = pcall(drawSpritesFrozen)
+    if not status then
+        print(string.format("Error! %s", err))
+    end
     frozenGfx = true
 end
 
