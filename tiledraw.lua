@@ -11,7 +11,7 @@ local grayscale = false
 
 local charMap = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'}
 
-local function toString(num, base, length)
+function mod.toString(num, base, length)
     
     base = base or 10
     
@@ -100,11 +100,18 @@ local function drawRow(x, y, row, attributes)
     end
 end
 
+-- Flip bits are not implemented yet!
 -- Currently only supports 8x8 mode.
 -- Priority bit is based on color rather than opacity of pixel.
 -- The back-priority sprite obscurring quirk is not implemented.
 -- Tint bits are not implemented--they actually affect NTSC signal generation, but FCEUX stores them in an extended palette I think.
+-- TODO: Are tiles invisible when they should be?
 function mod.drawTile(y, attributes, index, x)
+
+    -- TODO: Depending on how partially onscreen sprites behave, I may need to do this check on a per-pixel basis.
+    if y < 0 or y >= 232 or x < 0 or x >= 249 then
+        return
+    end
 
     if not showSprites then
         return
@@ -118,11 +125,7 @@ function mod.drawTile(y, attributes, index, x)
     local tileData = mod.getTileData(patternTable, index)
     for i = 0, 7 do
         local row = tileData[i]
-        if not debugMode then
-            drawRow(x, y + 1 + i, row, attributes)
-        else 
-            drawRow((x + 20 + 0) % 256, (y + 21 + i + 0) % 240, row, attributes)
-        end
+        drawRow(x, y + 1 + i, row, attributes)
     end
 
 end
@@ -146,8 +149,9 @@ end
 
 -- TODO: lower index == higher priority on NES, so I might want to draw this in reverse order.
 function mod.renderBuffer()
+    local offset = debugMode and 10 or 0
     for i, entry in ipairs(oam) do
-        mod.drawTile(entry.y, entry.attributes, entry.index, entry.x)
+        mod.drawTile(entry.y + offset, entry.attributes, entry.index, entry.x + offset)
     end
 end
 

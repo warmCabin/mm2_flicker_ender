@@ -1,6 +1,6 @@
 local tdraw = require("tiledraw")
 
-debugMode = true
+debugMode = false
 
 local HEALTH_BAR_Y_TABLE = 0xCFE2
 local HEALTH_BAR_TILES = 0xCFE9
@@ -66,46 +66,60 @@ local function getPtr(hiTable, loTable, index)
     return bit.bor(bit.lshift(memory.readbyte(hiTable + index), 8), memory.readbyte(loTable + index))
 end
 
-local function drawGfx(gfxPtr, spriteSlot, attributeOverride)
+local function drawGfx(gfxPtr, spriteSlot, spriteFlags, attributeOverride)
+
+    if debugMode then print(string.format("GFX ROUTINE: $%04X - %02X, %02X", gfxPtr, spriteSlot, attributeOverride)) end
+
     local length = memory.readbyte(gfxPtr)
     local posSeq = memory.readbyte(gfxPtr + 1)
     local posPtr = getPtr(SPRITE_FRAME_POS_OFFSET_PTRS_HI, SPRITE_FRAME_POS_OFFSET_PTRS_LO, posSeq)
     local baseX = memory.readbyte(0x0460 + spriteSlot) - memory.readbyte(0x1F) -- world pos - scroll
-    local baseY = memory.readbyte(0x04A0)
-    local spriteFlags = memory.readbyte(SPRITE_FLAGS + spriteSlot)
+    local baseY = memory.readbyte(0x04A0 + spriteSlot)
     local spriteFlip = bit.band(spriteFlags, 0x40)
     local j = 2
     
     for i = 1, length do
+        if debugMode then print(string.format("Tile #%d: %02X, %02X, %02X, %02X", i - 1, memory.readbyte(gfxPtr + j), memory.readbyte(posPtr + j + 1), memory.readbyte(posPtr + j), memory.readbyte(gfxPtr + j + 1))) end
         local tile = memory.readbyte(gfxPtr + j)
         local y = bit.band(memory.readbyte(posPtr + j) + baseY, 0xFF) -- 8 bit addition
         j = j + 1
         local attributes = memory.readbyte(gfxPtr + j)
+        if debugMode then print(string.format("base gfx attributes: %02X", attributes)) end
         if attributeOverride ~= 0 then
-            local newAttr = bit.bor(bit.band(attr, 0xF0), attributeOverride)
+            if debugMode then print(string.format("overriding with %02X", attributeOverride)) end
+            local newAttr = bit.bor(bit.band(attributes, 0xF0), attributeOverride)
             if newAttr ~= 0 then
                 attributes = newAttr
             end
         end
+        if debugMode then print(string.format("merged attributes: %02X", attributes)) end
         -- Flip tile if gfx data says tile is flipped.
         attributes = bit.bxor(spriteFlip, attributes)
         local xOffset = memory.readbyte(posPtr + j)
+        if debugMode then print(string.format("sprite flip: %02X. new attr: %02x", spriteFlip, attributes)) end
+        if debugMode then print(string.format("base x offset: %02X", xOffset)) end
         if spriteFlip ~= 0 then
             -- Flipped draw (need to compute alternate X coord)
             -- This table just represents the operation -(x + 8), but might as well do it authentically.
-            xOffset = memory.readbyte(TILE_OFFSET_SUBTRACTION_TABLE, x)
+            xOffset = memory.readbyte(TILE_OFFSET_SUBTRACTION_TABLE + xOffset)
         end
+        
+        if debugMode then print(string.format("x offset: %02X", xOffset)) end
         -- 8-bit addition
         local x = baseX + xOffset
+        if debugMode then print(string.format("x: %02X", x)) end
         local carry = x > 0xFF
+        if debugMode then print("carry: "..tostring(carry)) end
         x = bit.band(x, 0xFF) 
+        if debugMode then print(string.format("band x: %02X", x)) end
         --if carry ~= (xOffset >= 0x80) then
             -- No overflow; tile onscreen
-            -- print(string.format("Draw tile: %02X, %02X, %02X, %02X", y, attributes, tile, x))
+            if debugMode then print(string.format("Draw tile: %02X, %02X, %02X, %02X", y, attributes, tile, x)) end
             tdraw.bufferDraw(y, attributes, tile, x)
         --else
             -- Overflow; tile offscreen
         --end
+        j = j + 1
     end
 end
 
@@ -114,23 +128,34 @@ local function drawPlayerSprite(index)
 end
 
 local function drawEnemySprite(slot)
+
+    -- if slot ~= 0x1E then return end
+
     local flags = memory.readbyte(SPRITE_FLAGS + slot)
+    if debugMode then  print(string.format("DRAWING SLOT %02X (%02X)", slot, flags)) end
     
-    if flags >= 0x80 then return end
+    if flags < 0x80 then return end
+    
+    if debugMode then print("(alive)") end
     
     -- might pass some of these as params
     local id = memory.readbyte(SPRITE_IDS + slot)
-    local ptr = getPtr(SPRITE_MAIN_GFX_PTRS_HI, SPRITE_MAIN_GFX_PTRS_LO, slot)
+    local ptr = getPtr(SPRITE_MAIN_GFX_PTRS_HI, SPRITE_MAIN_GFX_PTRS_LO, id)
     local frame = memory.readbyte(SPRITE_FRAME_NUM + slot)
-    local frameId = memory.readbyte(ptr + frame)
+    local frameId = memory.readbyte(ptr + frame + 2)
+    
+    if debugMode then print(string.format("main gfx ptr: $%04X", ptr)) end
+    if debugMode then print(string.format("draw frame %02X", frameId)) end
     
     -- There are some details here in the real code concerning animation timers which we don't care about.
     
     if frameId == 0 then return end
     
     if bit.band(flags, 0x20) ~= 0 then return end
+    if debugMode then print("(visible)") end
     
-    ptr = getPtr(SPRITE_FRAME_GFX_PTRS_HI, SPRITE_FRAME_GFX_PTRS_LO, id)
+    ptr = getPtr(SPRITE_FRAME_GFX_PTRS_HI, SPRITE_FRAME_GFX_PTRS_LO, frameId)
+    if debugMode then print(string.format("draw ptr: $%04X", ptr)) end
     local attributeOverride = memory.readbyte(0x0100 + slot)
     drawGfx(ptr, slot, flags, attributeOverride)
 end
@@ -167,6 +192,7 @@ local function drawSpritesNormal()
             drawPlayerSprite(i)
         end
     end
+
 end
 
 local function drawSpritesFrozen()
@@ -203,7 +229,7 @@ local function drawSprites()
         tdraw.clearBuffer()
     elseif normalGfx then
         if debugMode then gui.text(100, 10, "Normal gfx") end
-        drawSpritesNormal()
+        -- drawSpritesNormal()
         normalGfx = false
     elseif frozenGfx then
         if debugMode then gui.text(100, 10, "Frozen gfx") end
@@ -229,6 +255,11 @@ end
 
 local function normalGfxRoutineCallback(address, bank)
     normalGfx = true
+    -- debugger.hitbreakpoint()
+    local status, err = pcall(drawSpritesNormal)
+    if not status then
+        print(string.format("Error! %s", err))
+    end
 end
 
 local function timeFrozenGfxRoutineCallback()
@@ -257,7 +288,7 @@ end
 -- that is uses $29 as an in-memory mirror for the current low-address bank number.
 -- Could be onto something good here if we could read the mapper state.
 -- FCEUX has an internal function that provides this information; should expose it to Lua.
-local function getBank()
+function getBank()
     local pc = memory.getregister("PC")
     
     if pc >= 0xC000 then
