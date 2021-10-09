@@ -152,12 +152,20 @@ function mod.clearBuffer()
     prevOam = {}
 end
 
+-- With this nonsense in place, you can observe the exact flicker as if you has "Allow more than 8 sprites per scanline" checked.
+-- Need to make this override canonical order.
+-- TODO: provide an API to set this
+local OAM_LIMIT = 32000
+
 function mod.renderBuffer()
-    local offset = debugMode and 10 or 10
+    local offset = debugMode and 0 or 0
     -- Draw in reverse order because that's how the NES priotizes sprites
+    local count = 0
     for i = #prevOam, 1, -1 do
         local entry = prevOam[i]
         mod.drawTile(entry.y + offset, entry.attributes, entry.index, entry.x + offset)
+        count = count + 1
+        if count == OAM_LIMIT then break end
     end
     if #oam ~= 0 then
         prevOam = oam
