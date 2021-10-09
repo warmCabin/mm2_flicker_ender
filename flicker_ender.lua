@@ -18,6 +18,11 @@ local SPRITE_FRAME_POS_OFFSET_PTRS_LO = 0x8400
 local SPRITE_FRAME_POS_OFFSET_PTRS_HI = 0x8500
 local TILE_OFFSET_SUBTRACTION_TABLE = 0x8600
 
+local PLAYER_MAIN_GFX_PTRS_LO = 0xF900
+local PLAYER_MAIN_GFX_PTRS_HI = 0xFA00
+local PLAYER_FRAME_GFX_PTRS_LO = 0x8000
+local PLAYER_FRAME_GFX_PTRS_HI = 0x8200
+
 local gameState = 0
 
 -- Another approach to this problem might be to force $06 (OAM counter) to always be 0 so the game always draws,
@@ -125,8 +130,57 @@ local function drawGfx(gfxPtr, spriteSlot, spriteFlags, attributeOverride)
     end
 end
 
-local function drawPlayerSprite(index)
-
+local function drawPlayerSprite(slot)
+    
+    local flags = memory.readbyte(SPRITE_FLAGS + slot)
+    
+    if flags < 0x80 then return end
+    if debugMode then  print(string.format("DRAWING SLOT %02X (%02X)", slot, flags)) end
+    
+    local id = memory.readbyte(SPRITE_IDS + slot)
+    local ptr = getPtr(PLAYER_MAIN_GFX_PTRS_HI, PLAYER_MAIN_GFX_PTRS_LO, id)
+    local frame = memory.readbyte(SPRITE_FRAME_NUM + slot)
+    local frameId = memory.readbyte(ptr + frame + 2)
+    
+    if debugMode then print(string.format("main gfx ptr: $%04X", ptr)) end
+    if debugMode then print(string.format("draw frame %02X", frameId)) end
+    
+    -- There are some details here in the real code concerning animation timers which we don't care about.
+    
+    if frameId == 0 then return end
+    
+    -- Special cases for Mega Man and bosses
+    if slot == 0 then
+        -- Mega Man
+        local iFrames = memory.readbyte(0x4B)
+        if iFrames ~= 0 then
+            -- Flicker Mega Man on and off every 2 frames
+            local frameCount = memory.readbyte(0x1C)
+            if bit.band(frameCount, 2) ~= 0 then
+                return
+            end
+        end
+        -- Don't render Mega Man if he's off screen
+        local offscreenFlag = memory.readbyte(0xF9)
+        if offscreenFlag ~= 0 then
+            return
+        end
+    elseif slot == 1 then
+        -- Boss
+        local iFrames = memory.readbyte(0x05A8)
+        if iFrames ~= 0 then
+            -- Flicker boss on and off every 2 frames
+            local frameCount = memory.readbyte(0x1C)
+            if bit.band(frameCount, 2) == 0 then -- Double check this logic.
+                frameId = 0x18 -- Crash star for blinking invincibility
+            end
+        end
+    end
+    
+    ptr = getPtr(PLAYER_FRAME_GFX_PTRS_HI, PLAYER_FRAME_GFX_PTRS_LO, frameId)
+    if debugMode then print(string.format("draw ptr: $%04X", ptr)) end
+    drawGfx(ptr, slot, flags, 0)
+    
 end
 
 local function drawEnemySprite(slot)
@@ -224,8 +278,10 @@ local function drawSprites()
     tdraw.renderBuffer()
 
     -- Sometimes appears one frame before it's supposed to in boss fights.
-    -- Has to do with that one lag frame you sometimes get. Is there another callback to look for?
-    -- Health bars persist during the end credits.
+    --   Has to do with that one lag frame you sometimes get. Is there another callback to look for?
+    -- Objects persist during the end credits.
+    -- When the emulator itself renders objects, we get back-prioity issues. Try implementing priority correctly first.
+    -- Blue "Buster energy" can be seen during 1 frame of loading lag. Basically my garbage is different than their garbage.
     
     if gameState == 78 or gameState == 120 or gameState == 129 or gameState == 195 or gameState == 197 then
         if debugMode then gui.text(100, 10, "Get equipped/Castle/Death") end
