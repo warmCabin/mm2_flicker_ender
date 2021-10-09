@@ -186,15 +186,11 @@ local function drawPlayerSprite(slot)
 end
 
 local function drawEnemySprite(slot)
-
-    -- if slot ~= 0x1D then return end
-
+    
     local flags = memory.readbyte(SPRITE_FLAGS + slot)
     
     if flags < 0x80 then return end
     if debugMode then  print(string.format("DRAWING SLOT %02X (%02X)", slot, flags)) end
-    
-    if debugMode then print("(alive)") end
     
     -- might pass some of these as params
     local id = memory.readbyte(SPRITE_IDS + slot)
