@@ -40,6 +40,7 @@ local function mergePlanes(plane0, plane1)
         local bit0 = bit.rshift(bit.band(plane0, mask), i)
         local bit1 = bit.rshift(bit.band(plane1, mask), i)
         local sum = bit.bor(bit0, bit.lshift(bit1, 1))
+        -- if sum ~= 0 then sum = 4 - sum end
         str = str..sum
     end
     return str
@@ -91,7 +92,7 @@ local function shouldDraw(x, y, c, attributes)
     
     -- This check isn't perfect. Non-BG colors can have the same color as the BG and obscure sprites.
     -- Instead of shouldDraw == false, maybe could update the color to emu.getscreenpixel()? Have this return that?
-    local _, _, _, pal = emu.getscreenpixel(x, y, true)
+    local _, _, _, pal = emu.getscreenpixel(x, y, false)
     return pal == ppu.readbyte(0x3F00)
     
 end
@@ -103,6 +104,7 @@ local function drawRow(x, y, row, attributes)
         local c = flipX and row:sub(#row - i + 1, #row - i + 1) or row:sub(i, i)
         if shouldDraw(x + i - 1, y, c, attributes) then
             local paletteIndex = 0x10 + palette * 4 + tonumber(c)
+            -- TODO: gui.pixel seems to be slow. Buffer these into a gdstring?
             gui.pixel(x + i - 1, y, getColor(paletteIndex))
         end
     end
