@@ -253,7 +253,8 @@ end
 
 local function drawSpritesFrozen()
     --tdraw.clearBuffer()
-    drawEnergyBars()
+    -- I think this works because the frozen draw routine is the same code as the regular draw routine, but animation timers aren't incremented.
+    -- This script is only interested in reading whatever animation data the game is producing, so it has no need for that information.
     drawSpritesNormal() -- TODO: This will probably break when I implement drawPlayerSprite
 end
 
