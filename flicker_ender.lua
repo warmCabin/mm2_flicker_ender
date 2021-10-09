@@ -226,6 +226,7 @@ local pauseMenuInit = false
 local function drawSpritesNormal()
 
     --tdraw.clearBuffer()
+    emu.setrenderplanes(false, true) -- Disable emu sprite rendering to replace it with out own
     
     local frameCount = memory.readbyte(0x1C)
     
@@ -260,6 +261,7 @@ end
 
 local function drawSpritesPauseMenu()
     --tdraw.clearBuffer()
+    emu.setrenderplanes(true, true) -- Re-enable sprites. No need to simulate the pause menu graphics.
 end
 
 local prevGameState = memory.readbyte(0x01FE)
@@ -269,6 +271,7 @@ local function drawSpritesMenuPopup()
     -- I'm using hacky gamestate jank until I do.
     if gameState ~= 156 and prevGameState ~= 156 then
         tdraw.clearBuffer()
+        emu.setrenderplanes(true, true) -- Re-enable sprites. No need to simulate the pause menu graphics.
     end
 end
 
@@ -289,6 +292,7 @@ local function drawSprites()
     if gameState == 78 or gameState == 120 or gameState == 129 or gameState == 195 or gameState == 197 then
         if debugMode then gui.text(100, 10, "Get equipped/Castle/Death") end
         tdraw.clearBuffer()
+        emu.setrenderplanes(true, true)
     elseif normalGfx then
         if debugMode then gui.text(100, 10, "Normal gfx") end
         -- drawSpritesNormal()
@@ -300,6 +304,7 @@ local function drawSprites()
     elseif pauseMenuGfx then
         if debugMode then gui.text(100, 10, "Pause menu gfx") end
         drawSpritesPauseMenu()
+        --emu.setrenderplanes(true, true)
         pauseMenuGfx = false
     elseif pauseMenuInit then
         if debugMode then gui.text(100, 10, "Menu routine") end
@@ -307,6 +312,8 @@ local function drawSprites()
         pauseMenuInit = false
     else
         if debugMode then gui.text(100, 10, "None") end
+        -- Could try to detect the scroll init state instead of lumping it in with None
+       emu.setrenderplanes(true, true) -- Re-enable sprites. No need to simulate the pause menu graphics.
     end
     
 end
@@ -325,6 +332,7 @@ end
 
 local function timeFrozenGfxRoutineCallback()
     local status, err = pcall(drawSpritesFrozen)
+    --emu.setrenderplanes(false, true)
     if not status then
         print(string.format("Error! %s", err))
     end
