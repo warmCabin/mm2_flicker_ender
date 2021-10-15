@@ -139,6 +139,7 @@ local oam = {}
 local prevOam = {}
 
 function mod.bufferDraw(y, attributes, index, x)
+    -- TODO: OAM_LIMIT checks here?
     table.insert(oam, {
         y = y,
         attributes = attributes,
@@ -152,8 +153,8 @@ function mod.clearBuffer()
     prevOam = {}
 end
 
--- With this nonsense in place, you can observe the exact flicker as if you has "Allow more than 8 sprites per scanline" checked.
--- Need to make this override canonical order.
+-- With this nonsense in place, you can observe the exact flicker as if you had "Allow more than 8 sprites per scanline" checked.
+-- Need to make this override canonical order (that's a caller problem, not tiledraw's problem!).
 -- TODO: provide an API to set this
 local OAM_LIMIT = 32000
 
@@ -167,6 +168,7 @@ function mod.renderBuffer()
         count = count + 1
         if count == OAM_LIMIT then break end
     end
+    if debugMode then gui.text(10, 10, #prevOam, #prevOam > 64 and "red" or "white") end
     if #oam ~= 0 then
         prevOam = oam
         oam = {}

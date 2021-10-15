@@ -5,6 +5,8 @@ local canonicalOrder = arg:find("--canonical--order")
 -- Should represent a bunch of different orderings instead of on or off.
 -- --order=FLICKER,CANONICAL,BACKWARDS,GOOD. Or...let the user pass a permutation o_o
 
+-- If you're playing this on a hack or Mega Man 2, one of these addresses probably needs to be adjusted.
+
 local HEALTH_BAR_Y_TABLE = 0xCFE2
 local HEALTH_BAR_TILES = 0xCFE9
 
@@ -279,9 +281,9 @@ local function drawSprites()
     
     tdraw.renderBuffer()
 
-    -- Sometimes appears one frame before it's supposed to in boss fights.
+    -- Health bar sometimes appears one frame before it's supposed to in boss fights.
     --   Has to do with that one lag frame you sometimes get. Is there another callback to look for?
-    -- Objects persist during the end credits.
+    -- Objects persist during the end credits and on READY screen. Just need to do a gamestate check.
     -- When the emulator itself renders objects, we get back-prioity issues. Try implementing priority correctly first.
     -- Blue "Buster energy" can be seen during 1 frame of loading lag. Basically my garbage is different than their garbage.
     
