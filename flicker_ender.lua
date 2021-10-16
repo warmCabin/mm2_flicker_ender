@@ -12,20 +12,21 @@ local HEALTH_BAR_TILES = 0xCFE9
 
 local SPRITE_FLAGS = 0x0420
 local SPRITE_IDS = 0x0400
+local SPRITE_CEL_NUMS = 0x06A0
 
-local SPRITE_MAIN_GFX_PTRS_LO = 0xF980
-local SPRITE_MAIN_GFX_PTRS_HI = 0xFA80
-local SPRITE_FRAME_GFX_PTRS_LO = 0x8100
-local SPRITE_FRAME_GFX_PTRS_HI = 0x8300
-local SPRITE_FRAME_NUM = 0x06A0
-local SPRITE_FRAME_POS_OFFSET_PTRS_LO = 0x8400
-local SPRITE_FRAME_POS_OFFSET_PTRS_HI = 0x8500
-local TILE_OFFSET_SUBTRACTION_TABLE = 0x8600
+local ENEMY_MAIN_GFX_PTRS_LO = 0xF980
+local ENEMY_MAIN_GFX_PTRS_HI = 0xFA80
+local ENEMY_CEL_PTRS_LO = 0x8100
+local ENEMY_CEL_PTRS_HI = 0x8300
 
 local PLAYER_MAIN_GFX_PTRS_LO = 0xF900
 local PLAYER_MAIN_GFX_PTRS_HI = 0xFA00
 local PLAYER_FRAME_GFX_PTRS_LO = 0x8000
 local PLAYER_FRAME_GFX_PTRS_HI = 0x8200
+
+local SPRITE_CEL_POS_PATTERN_PTRS_LO = 0x8400
+local SPRITE_CEL_POS_PATTERN_PTRS_HI = 0x8500
+local TILE_OFFSET_SUBTRACTION_TABLE = 0x8600
 
 local gameState = 0
 
@@ -80,7 +81,7 @@ local function drawGfx(gfxPtr, spriteSlot, spriteFlags, attributeOverride)
 
     local length = memory.readbyte(gfxPtr)
     local posSeq = memory.readbyte(gfxPtr + 1)
-    local posPtr = getPtr(SPRITE_FRAME_POS_OFFSET_PTRS_HI, SPRITE_FRAME_POS_OFFSET_PTRS_LO, posSeq)
+    local posPtr = getPtr(SPRITE_CEL_POS_PATTERN_PTRS_HI, SPRITE_CEL_POS_PATTERN_PTRS_LO, posSeq)
     local baseX = bit.band(memory.readbyte(0x0460 + spriteSlot) - memory.readbyte(0x1F), 0xFF) -- world pos - scroll
     local baseY = memory.readbyte(0x04A0 + spriteSlot)
     local spriteFlip = bit.band(spriteFlags, 0x40)
@@ -143,7 +144,7 @@ local function drawPlayerSprite(slot)
     
     local id = memory.readbyte(SPRITE_IDS + slot)
     local ptr = getPtr(PLAYER_MAIN_GFX_PTRS_HI, PLAYER_MAIN_GFX_PTRS_LO, id)
-    local frame = memory.readbyte(SPRITE_FRAME_NUM + slot)
+    local frame = memory.readbyte(SPRITE_CEL_NUMS + slot)
     local frameId = memory.readbyte(ptr + frame + 2)
     
     if debugMode then print(string.format("main gfx ptr: $%04X", ptr)) end
@@ -196,8 +197,8 @@ local function drawEnemySprite(slot)
     
     -- might pass some of these as params
     local id = memory.readbyte(SPRITE_IDS + slot)
-    local ptr = getPtr(SPRITE_MAIN_GFX_PTRS_HI, SPRITE_MAIN_GFX_PTRS_LO, id)
-    local frame = memory.readbyte(SPRITE_FRAME_NUM + slot)
+    local ptr = getPtr(ENEMY_MAIN_GFX_PTRS_HI, ENEMY_MAIN_GFX_PTRS_LO, id)
+    local frame = memory.readbyte(SPRITE_CEL_NUMS + slot)
     local frameId = memory.readbyte(ptr + frame + 2)
     
     if debugMode then print(string.format("main gfx ptr: $%04X", ptr)) end
@@ -210,7 +211,7 @@ local function drawEnemySprite(slot)
     if bit.band(flags, 0x20) ~= 0 then return end
     if debugMode then print("(visible)") end
     
-    ptr = getPtr(SPRITE_FRAME_GFX_PTRS_HI, SPRITE_FRAME_GFX_PTRS_LO, frameId)
+    ptr = getPtr(ENEMY_CEL_PTRS_HI, ENEMY_CEL_PTRS_LO, frameId)
     if debugMode then print(string.format("draw ptr: $%04X", ptr)) end
     local attributeOverride = memory.readbyte(0x0100 + slot)
     drawGfx(ptr, slot, flags, attributeOverride)
