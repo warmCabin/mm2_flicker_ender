@@ -87,14 +87,22 @@ local function shouldDraw(x, y, c, attributes)
     
     if not showLeftmost and x < 8 then return false end
     
-    -- If priority bit is off, then it's in front of background
-    if bit.band(attributes, 0x20) == 0 then return true end
-    
-    -- This check isn't perfect. Non-BG colors can have the same color as the BG and obscure sprites.
-    -- Instead of shouldDraw == false, maybe could update the color to emu.getscreenpixel()? Have this return that?
-    local _, _, _, pal = emu.getscreenpixel(x, y, false)
-    return pal == ppu.readbyte(0x3F00)
-    
+    -- Regardless of priority bit, return true.
+    -- That logic is handled in drawPixel by picking the screen color instead of the sprite pixel color.
+    return true
+end
+
+local function drawPixel(x, y, paletteIndex, attributes)
+    local color = getColor(paletteIndex)
+    local _, _, _, screenColor = emu.getscreenpixel(x, y, false)
+    -- Check if pixel should be behind the background.
+    -- This isn't perfect. Opaque BG pixels can match the global backdrop color, but they should still count as opaque.
+    if bit.band(attributes, 0x20) ~= 0 and screenColor ~= ppu.readbyte(0x3F00) then
+        -- Why draw this pixel at all if it's behind the background?
+        -- Because on the NES, back-priority sprites can obscure front-priority sprites, even if the background is "between" them.
+        color = string.format("P%02X", screenColor)
+    end
+    gui.pixel(x, y, color)
 end
 
 local function drawRow(x, y, row, attributes)
@@ -105,7 +113,7 @@ local function drawRow(x, y, row, attributes)
         if shouldDraw(x + i - 1, y, c, attributes) then
             local paletteIndex = 0x10 + palette * 4 + tonumber(c)
             -- TODO: gui.pixel seems to be slow. Buffer these into a gdstring?
-            gui.pixel(x + i - 1, y, getColor(paletteIndex))
+            drawPixel(x + i - 1, y, paletteIndex, attributes)
         end
     end
 end
