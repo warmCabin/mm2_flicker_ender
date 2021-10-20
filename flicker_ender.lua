@@ -7,7 +7,7 @@ local parser = argparse()
 
 parser:option "--order"
     :choices {"canonical", "health-bars-in-front"}
-    :default "health-bars-in-front"
+    :default "health-bars-in-front" -- Let the user pass a permutation? o_o PhE
     
 parser:flag "--debug"
 parser:flag "--alternating"
@@ -28,7 +28,7 @@ local args
 if gotHelp then return end
 
 if not success then
-    print(result)
+    print(result.."\n")
     print(parser:get_help())
     return
 else
@@ -37,12 +37,11 @@ else
 end
 
 local debugMode = args.debug
--- Let the user pass a permutation? o_o PhE
-
--- If you're playing this on a hack or Mega Man 2, one of these addresses probably needs to be adjusted.
 
 -- TODO: no draw and re enable sprites when panning backwards
 -- turn sprites back on on exit
+
+-- For Mega Man 2, most of these addresses probably need to be adjusted.
 
 local HEALTH_BAR_Y_TABLE = 0xCFE2
 local HEALTH_BAR_TILES = 0xCFE9
