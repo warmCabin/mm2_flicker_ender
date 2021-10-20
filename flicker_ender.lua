@@ -8,9 +8,12 @@ local parser = argparse()
 parser:option "--order"
     :choices {"canonical", "health-bars-in-front"}
     :default "health-bars-in-front" -- Let the user pass a permutation? o_o PhE
+    :description "Sprite drawing order"
     
 parser:flag "--debug"
+    :description "Enable debug mode. Offset draws and print LOTS of info!"
 parser:flag "--alternating"
+    :description "Alternate drawing order every frame"
 
 -- Janky custom --help because we want to return from this script, not exit the emulator entirely (which os.exit does for some reason)
 -- Add to ffix?
