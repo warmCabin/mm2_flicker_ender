@@ -4,6 +4,7 @@
     - io.write does absolutely nothing
     - arg is a plain string instead of a table
     - arg is often a nil reference
+    - os.exit closes the emulator
 ]]
 
 local fceuxPrint = print
@@ -28,6 +29,11 @@ end
 
 -- io.write does nothing!!!
 io.write = print
+
+-- Somehow, this doesn't always get called :/
+function os.exit(status)
+    error(string.format("\n\n%s called os.exit(%d)\n", arg[0], status or 0))
+end
 
 -- arg can occasionally go missing, ending up as a nil reference.
 assert(arg, "Command line arguments got lost somehow :(\nPlease run this script again.")
