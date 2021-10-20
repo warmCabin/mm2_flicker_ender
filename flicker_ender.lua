@@ -1,11 +1,34 @@
 local tdraw = require("tiledraw")
+local argparse = require "argparse"
 
-debugMode = arg:find("--debug")
-local canonicalOrder = arg:find("--canonical--order")
+local parser = argparse()
+
+parser:option "--order"
+    :choices {"canonical", "health-bars-in-front"}
+    :default "health-bars-in-front"
+    
+parser:flag "--debug"
+
+parser:flag "--alternating"
+
+x, err = pcall(function()
+    print(arg)
+    local success, error = parser:pparse({arg})
+    print(tostring(success))
+    print(tostring(error))
+end)
+
+print(err)
+
+--debugMode = arg:find("--debug")
+--local canonicalOrder = arg:find("--canonical--order")
 -- Should represent a bunch of different orderings instead of on or off.
 -- --order=FLICKER,CANONICAL,BACKWARDS,GOOD. Or...let the user pass a permutation o_o
 
 -- If you're playing this on a hack or Mega Man 2, one of these addresses probably needs to be adjusted.
+
+-- TODO: no draw and re enable sprites when panning backwards
+-- turn sprites back on on exit
 
 local HEALTH_BAR_Y_TABLE = 0xCFE2
 local HEALTH_BAR_TILES = 0xCFE9
