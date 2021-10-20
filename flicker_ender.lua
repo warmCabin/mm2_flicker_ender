@@ -1,21 +1,6 @@
+require "ffix" -- Fixes args to be standard table instead of a string and adds \n support to print (yes, really).
 local tdraw = require("tiledraw")
 local argparse = require "argparse"
-
-local fceuxPrint = print
-io.write = fceuxPrint -- io.write does nothing!!!
-
--- print does not respect newlines!!
-function print(...)
-    for _, v in ipairs(arg) do
-        if type(v) == "string" then
-            for line in v:gmatch("[^\r\n]+") do
-                fceuxPrint(line)
-            end
-        else
-            fceuxPrint(v)
-        end
-    end
-end
 
 local parser = argparse()
     :help_max_width(900)
@@ -28,6 +13,7 @@ parser:flag "--debug"
 parser:flag "--alternating"
 
 -- Janky custom --help because we want to return from this script, not exit the emulator entirely (which os.exit does for some reason)
+-- Add to ffix?
 local gotHelp = false
 parser:flag "-h --help"
     :hidden(true)
@@ -36,14 +22,7 @@ parser:flag "-h --help"
         gotHelp = true
     end)
 
--- FCEUX passes arg as a string, but vanilla Lua does a table. Sometimes, this string can be null if you are unlucky.
--- TODO: FCEUX-fixer
-local argT = {}
-for str in arg:gmatch("[^ ]+") do
-    table.insert(argT, str) -- table.pack does not exist in FCEUX. I don't know what to say...
-end
-
-local success, result = parser:pparse(argT)
+local success, result = parser:pparse()
 local args
 
 if gotHelp then return end
