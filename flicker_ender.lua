@@ -1,29 +1,64 @@
 local tdraw = require("tiledraw")
 local argparse = require "argparse"
 
+local fceuxPrint = print
+io.write = fceuxPrint -- io.write does nothing!!!
+
+-- print does not respect newlines!!
+function print(...)
+    for _, v in ipairs(arg) do
+        if type(v) == "string" then
+            for line in v:gmatch("[^\r\n]+") do
+                fceuxPrint(line)
+            end
+        else
+            fceuxPrint(v)
+        end
+    end
+end
+
 local parser = argparse()
+    :help_max_width(900)
 
 parser:option "--order"
     :choices {"canonical", "health-bars-in-front"}
     :default "health-bars-in-front"
     
 parser:flag "--debug"
-
 parser:flag "--alternating"
 
-x, err = pcall(function()
-    print(arg)
-    local success, error = parser:pparse({arg})
-    print(tostring(success))
-    print(tostring(error))
-end)
+-- Janky custom --help because we want to return from this script, not exit the emulator entirely (which os.exit does for some reason)
+local gotHelp = false
+parser:flag "-h --help"
+    :hidden(true)
+    :action(function(args)
+        print(parser:get_help())
+        gotHelp = true
+    end)
 
-print(err)
+-- FCEUX passes arg as a string, but vanilla Lua does a table. Sometimes, this string can be null if you are unlucky.
+-- TODO: FCEUX-fixer
+local argT = {}
+for str in arg:gmatch("[^ ]+") do
+    table.insert(argT, str) -- table.pack does not exist in FCEUX. I don't know what to say...
+end
 
---debugMode = arg:find("--debug")
---local canonicalOrder = arg:find("--canonical--order")
--- Should represent a bunch of different orderings instead of on or off.
--- --order=FLICKER,CANONICAL,BACKWARDS,GOOD. Or...let the user pass a permutation o_o
+local success, result = parser:pparse(argT)
+local args
+
+if gotHelp then return end
+
+if not success then
+    print(result)
+    print(parser:get_help())
+    return
+else
+    args = result
+    print(tostring(args))
+end
+
+local debugMode = args.debug
+-- Let the user pass a permutation? o_o PhE
 
 -- If you're playing this on a hack or Mega Man 2, one of these addresses probably needs to be adjusted.
 

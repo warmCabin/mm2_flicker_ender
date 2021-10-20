@@ -231,7 +231,7 @@ local add_help = {"add_help", function(self, value)
          :description "Show this help message and exit."
          :action(function()
             print(self:get_help())
-            os.exit(0)
+            -- os.exit(0)
          end)
 
       if value ~= true then
@@ -1086,13 +1086,13 @@ function Parser:add_help_command(value)
       :action(function(_, _, cmd)
          if not cmd then
             print(self:get_help())
-            os.exit(0)
+            -- os.exit(0)
          else
             for _, command in ipairs(self._commands) do
                for _, alias in ipairs(command._aliases) do
                   if alias == cmd then
                      print(command:get_help())
-                     os.exit(0)
+                     -- os.exit(0)
                   end
                end
             end
