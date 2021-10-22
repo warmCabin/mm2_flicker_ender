@@ -5,14 +5,14 @@ local argparse = require "argparse"
 local parser = argparse()
     :help_max_width(900)
 
-parser:option "--order"
+parser:option "--order -o"
     :choices {"canonical", "health-bars-in-front"}
     :default "health-bars-in-front" -- Let the user pass a permutation? o_o PhE
     :description "Sprite drawing order"
     
-parser:flag "--debug"
+parser:flag "--debug -d"
     :description "Enable debug mode. Offset draws and print LOTS of info!"
-parser:flag "--alternating"
+parser:flag "--alternating -a"
     :description "Alternate drawing order every frame"
 
 -- Janky custom --help because we want to return from this script, not exit the emulator entirely (which os.exit does for some reason)
