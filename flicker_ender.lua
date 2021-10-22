@@ -261,33 +261,60 @@ local frozenGfx = false
 local pauseMenuGfx = false
 local pauseMenuInit = false
 
+local function drawEnemySprites(forward)
+    local start, stop, step
+    if forward then
+        start, stop, step = 0x10, 0x1F, 1
+    else
+        start, stop, step = 0x1F, 0x10, -1
+    end
+    
+    for i = start, stop, step do
+        drawEnemySprite(i)
+    end
+end
+
+local function drawPlayerSprites(forward)
+    local start, stop, step
+    if forward then
+        start, stop, step = 0, 0xF, 1
+    else
+        start, stop, step = 0xF, 0, -1
+    end
+    
+    for i = start, stop, step do
+        drawPlayerSprite(i)
+    end
+end
+
 local function drawSpritesNormal()
 
     --tdraw.clearBuffer()
-    emu.setrenderplanes(false, true) -- Disable emu sprite rendering to replace it with out own
+    emu.setrenderplanes(false, true) -- Disable emu sprite rendering to replace it with our own
+    
+    -- TODO: make this global
+    local drawFuncs
+    if args.order == "canonical" then
+        drawFuncs = {drawPlayerSprites, drawEnemySprites, drawEnergyBars}
+    elseif args.order == "health-bars-in-front" then
+        drawFuncs = {drawEnergyBars, drawPlayerSprites, drawEnemySprites}
+    else
+        error("WTF")
+    end
     
     local frameCount = memory.readbyte(0x1C)
-    
-    if frameCount % 2 == 0 or canonicalOrder then
+    if not args.alternating or frameCount % 2 == 0 then
         -- Draw sprites forwards
-        for i = 0, 0xF do
-            drawPlayerSprite(i)
+        for _, func in ipairs(drawFuncs) do
+            func(true)
         end
-        for i = 0x10, 0x1F do
-            drawEnemySprite(i)
-        end
-        drawEnergyBars()
     else
-        -- Draw sprites backwards
-        drawEnergyBars()
-        for i = 0x1F, 0x10, -1 do
-            drawEnemySprite(i)
-        end
-        for i = 0xF, 0, -1 do
-            drawPlayerSprite(i)
-        end
+         -- Draw sprites backwards
+         for i = #drawFuncs, 1, -1 do
+            drawFuncs[i](false)
+         end
     end
-
+    
 end
 
 local function drawSpritesFrozen()
