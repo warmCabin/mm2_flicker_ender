@@ -36,7 +36,6 @@ if not success then
     return
 else
     args = result
-    print(tostring(args))
 end
 
 local debugMode = args.debug
@@ -58,6 +57,7 @@ local ENEMY_MAIN_GFX_PTRS_HI = 0xFA80
 local ENEMY_CEL_PTRS_LO = 0x8100
 local ENEMY_CEL_PTRS_HI = 0x8300
 
+-- TODO: rename the rest of these...?
 local PLAYER_MAIN_GFX_PTRS_LO = 0xF900
 local PLAYER_MAIN_GFX_PTRS_HI = 0xFA00
 local PLAYER_FRAME_GFX_PTRS_LO = 0x8000
@@ -114,6 +114,7 @@ local function getPtr(hiTable, loTable, index)
     return bit.bor(bit.lshift(memory.readbyte(hiTable + index), 8), memory.readbyte(loTable + index))
 end
 
+-- TODO: drawCel
 local function drawGfx(gfxPtr, spriteSlot, spriteFlags, attributeOverride)
 
     if debugMode then print(string.format("GFX ROUTINE: $%04X - %02X, %02X", gfxPtr, spriteSlot, attributeOverride)) end

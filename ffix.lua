@@ -1,5 +1,5 @@
 --[[
-    FCEUX Fixer! Fixes some of the shortcomings of FCEUX's half-assed Lua implementation.
+    FCEUX Fixer! Fixes some of the shortcomings of FCEUX's strange Lua implementation:
     - print does not support \n
     - io.write does absolutely nothing
     - arg is a plain string instead of a table
@@ -33,6 +33,7 @@ function print(...)
 end
 
 -- FCEUX io.write does nothing!
+-- io.write doesn't append a newline, so this isn't perfect. But it's better than nothing.
 io.write = print
 
 -- Somehow, this doesn't always get called :/
@@ -87,10 +88,6 @@ end
 
 stop = #arg
 if stop >= start then table.insert(argT, clean(arg:sub(start, stop))) end
-
-for i, str in ipairs(argT) do
-    print(string.format("[%d] |%s|", i, str))
-end
 
 -- Setup some metadata that's supposed to be in the arg table.
 -- [-1] (and below) = name and args of interpreter. "fceux" seemes fine for this.
