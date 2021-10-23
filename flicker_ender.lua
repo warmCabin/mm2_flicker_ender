@@ -3,7 +3,6 @@ local tdraw = require("tiledraw")
 local argparse = require "argparse"
 
 local parser = argparse()
-    :help_max_width(900)
 
 parser:option "--order -o"
     :choices {"canonical", "health-bars-in-front"}
