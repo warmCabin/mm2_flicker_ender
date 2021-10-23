@@ -6,7 +6,7 @@ Only compatible with **Rockman 2** for now. Not Mega Man 2, not Super Mario Bros
 
 # Command Line args
 
-There are a few command line arguments you can specify to weak the drawing order to your liking.
+There are a few command line arguments you can specify to tweak the drawing order to your liking.
 
 ```
 Usage: flicker_ender.lua [-h]
