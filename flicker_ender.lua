@@ -296,8 +296,18 @@ end
 
 local function drawSpritesNormal()
 
-    --tdraw.clearBuffer()
-    -- emu.setrenderplanes(false, true) -- Disable emu sprite rendering to replace it with our own
+    -- tdraw.clearBuffer()
+    
+    -- Disable emu sprite rendering to replace it with our own, conditionally.
+    -- There's a tradeoff here.
+    -- Leaving actual sprite rendering enabled causes weird interactions with
+    -- back-prioity sprites (between the real ones and the flicker_ender ones).
+    -- Disabling it screws screws with TASEditor panning, leaving us with no
+    -- actual sprites or flicker_ender sprites to look at.
+    -- This issue stems from the usage of emu.getscreenpixel in tiledraw.lua,
+    -- so if I implement a nametable-inspecting getbgpixel function, it willl
+    -- go away!
+    if not taseditor.engaged() then emu.setrenderplanes(false, true) end
     
     local frameCount = memory.readbyte(0x1C)
     if not args.alternating or frameCount % 2 == 0 then
