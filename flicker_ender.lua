@@ -1,31 +1,70 @@
+require "ffix" -- Fixes args to be standard table instead of a string and adds \n support to print (yes, really).
 local tdraw = require("tiledraw")
+local argparse = require "argparse"
 
-debugMode = arg:find("--debug")
-local canonicalOrder = arg:find("--canonical--order")
--- Should represent a bunch of different orderings instead of on or off.
--- --order=FLICKER,CANONICAL,BACKWARDS,GOOD. Or...let the user pass a permutation o_o
+local parser = argparse()
 
--- If you're playing this on a hack or Mega Man 2, one of these addresses probably needs to be adjusted.
+parser:option "--order -o"
+    :choices {"canonical", "health-bars-in-front"}
+    :default "health-bars-in-front" -- Let the user pass a permutation? o_o PhE
+    :description "Sprite drawing order"
+    
+parser:flag "--debug -d"
+    :description "Enable debug mode. Offset draws and print LOTS of info!"
+parser:flag "--alternating -a"
+    :description "Alternate drawing order every frame"
+
+-- Janky custom --help because we want to return from this script, not exit the emulator entirely (which os.exit does for some reason)
+-- Add to ffix?
+local gotHelp = false
+parser:flag "-h --help"
+    :hidden(true)
+    :action(function(args)
+        print(parser:get_help())
+        gotHelp = true
+    end)
+
+local success, result = parser:pparse()
+local args
+
+if gotHelp then return end
+
+if not success then
+    print(result.."\n")
+    print(parser:get_help())
+    return
+else
+    args = result
+end
+
+local debugMode = args.debug
+
+-- TODO: no draw and re enable sprites when panning backwards
+-- turn sprites back on on exit
+
+-- For Mega Man 2, most of these addresses probably need to be adjusted.
 
 local HEALTH_BAR_Y_TABLE = 0xCFE2
 local HEALTH_BAR_TILES = 0xCFE9
 
 local SPRITE_FLAGS = 0x0420
 local SPRITE_IDS = 0x0400
+local SPRITE_CEL_NUMS = 0x06A0
 
-local SPRITE_MAIN_GFX_PTRS_LO = 0xF980
-local SPRITE_MAIN_GFX_PTRS_HI = 0xFA80
-local SPRITE_FRAME_GFX_PTRS_LO = 0x8100
-local SPRITE_FRAME_GFX_PTRS_HI = 0x8300
-local SPRITE_FRAME_NUM = 0x06A0
-local SPRITE_FRAME_POS_OFFSET_PTRS_LO = 0x8400
-local SPRITE_FRAME_POS_OFFSET_PTRS_HI = 0x8500
-local TILE_OFFSET_SUBTRACTION_TABLE = 0x8600
+local ENEMY_MAIN_GFX_PTRS_LO = 0xF980
+local ENEMY_MAIN_GFX_PTRS_HI = 0xFA80
+local ENEMY_CEL_PTRS_LO = 0x8100
+local ENEMY_CEL_PTRS_HI = 0x8300
 
+-- TODO: rename the rest of these...?
 local PLAYER_MAIN_GFX_PTRS_LO = 0xF900
 local PLAYER_MAIN_GFX_PTRS_HI = 0xFA00
 local PLAYER_FRAME_GFX_PTRS_LO = 0x8000
 local PLAYER_FRAME_GFX_PTRS_HI = 0x8200
+
+local SPRITE_CEL_POS_PATTERN_PTRS_LO = 0x8400
+local SPRITE_CEL_POS_PATTERN_PTRS_HI = 0x8500
+local TILE_OFFSET_SUBTRACTION_TABLE = 0x8600
 
 local gameState = 0
 
@@ -74,13 +113,14 @@ local function getPtr(hiTable, loTable, index)
     return bit.bor(bit.lshift(memory.readbyte(hiTable + index), 8), memory.readbyte(loTable + index))
 end
 
+-- TODO: drawCel
 local function drawGfx(gfxPtr, spriteSlot, spriteFlags, attributeOverride)
 
     if debugMode then print(string.format("GFX ROUTINE: $%04X - %02X, %02X", gfxPtr, spriteSlot, attributeOverride)) end
 
     local length = memory.readbyte(gfxPtr)
     local posSeq = memory.readbyte(gfxPtr + 1)
-    local posPtr = getPtr(SPRITE_FRAME_POS_OFFSET_PTRS_HI, SPRITE_FRAME_POS_OFFSET_PTRS_LO, posSeq)
+    local posPtr = getPtr(SPRITE_CEL_POS_PATTERN_PTRS_HI, SPRITE_CEL_POS_PATTERN_PTRS_LO, posSeq)
     local baseX = bit.band(memory.readbyte(0x0460 + spriteSlot) - memory.readbyte(0x1F), 0xFF) -- world pos - scroll
     local baseY = memory.readbyte(0x04A0 + spriteSlot)
     local spriteFlip = bit.band(spriteFlags, 0x40)
@@ -143,7 +183,7 @@ local function drawPlayerSprite(slot)
     
     local id = memory.readbyte(SPRITE_IDS + slot)
     local ptr = getPtr(PLAYER_MAIN_GFX_PTRS_HI, PLAYER_MAIN_GFX_PTRS_LO, id)
-    local frame = memory.readbyte(SPRITE_FRAME_NUM + slot)
+    local frame = memory.readbyte(SPRITE_CEL_NUMS + slot)
     local frameId = memory.readbyte(ptr + frame + 2)
     
     if debugMode then print(string.format("main gfx ptr: $%04X", ptr)) end
@@ -196,8 +236,8 @@ local function drawEnemySprite(slot)
     
     -- might pass some of these as params
     local id = memory.readbyte(SPRITE_IDS + slot)
-    local ptr = getPtr(SPRITE_MAIN_GFX_PTRS_HI, SPRITE_MAIN_GFX_PTRS_LO, id)
-    local frame = memory.readbyte(SPRITE_FRAME_NUM + slot)
+    local ptr = getPtr(ENEMY_MAIN_GFX_PTRS_HI, ENEMY_MAIN_GFX_PTRS_LO, id)
+    local frame = memory.readbyte(SPRITE_CEL_NUMS + slot)
     local frameId = memory.readbyte(ptr + frame + 2)
     
     if debugMode then print(string.format("main gfx ptr: $%04X", ptr)) end
@@ -210,7 +250,7 @@ local function drawEnemySprite(slot)
     if bit.band(flags, 0x20) ~= 0 then return end
     if debugMode then print("(visible)") end
     
-    ptr = getPtr(SPRITE_FRAME_GFX_PTRS_HI, SPRITE_FRAME_GFX_PTRS_LO, frameId)
+    ptr = getPtr(ENEMY_CEL_PTRS_HI, ENEMY_CEL_PTRS_LO, frameId)
     if debugMode then print(string.format("draw ptr: $%04X", ptr)) end
     local attributeOverride = memory.readbyte(0x0100 + slot)
     drawGfx(ptr, slot, flags, attributeOverride)
@@ -221,33 +261,60 @@ local frozenGfx = false
 local pauseMenuGfx = false
 local pauseMenuInit = false
 
+local function drawEnemySprites(forward)
+    local start, stop, step
+    if forward then
+        start, stop, step = 0x10, 0x1F, 1
+    else
+        start, stop, step = 0x1F, 0x10, -1
+    end
+    
+    for i = start, stop, step do
+        drawEnemySprite(i)
+    end
+end
+
+local function drawPlayerSprites(forward)
+    local start, stop, step
+    if forward then
+        start, stop, step = 0, 0xF, 1
+    else
+        start, stop, step = 0xF, 0, -1
+    end
+    
+    for i = start, stop, step do
+        drawPlayerSprite(i)
+    end
+end
+
 local function drawSpritesNormal()
 
     --tdraw.clearBuffer()
-    emu.setrenderplanes(false, true) -- Disable emu sprite rendering to replace it with out own
+    emu.setrenderplanes(false, true) -- Disable emu sprite rendering to replace it with our own
+    
+    -- TODO: make this global
+    local drawFuncs
+    if args.order == "canonical" then
+        drawFuncs = {drawPlayerSprites, drawEnemySprites, drawEnergyBars}
+    elseif args.order == "health-bars-in-front" then
+        drawFuncs = {drawEnergyBars, drawPlayerSprites, drawEnemySprites}
+    else
+        error("WTF")
+    end
     
     local frameCount = memory.readbyte(0x1C)
-    
-    if frameCount % 2 == 0 or canonicalOrder then
+    if not args.alternating or frameCount % 2 == 0 then
         -- Draw sprites forwards
-        for i = 0, 0xF do
-            drawPlayerSprite(i)
+        for _, func in ipairs(drawFuncs) do
+            func(true)
         end
-        for i = 0x10, 0x1F do
-            drawEnemySprite(i)
-        end
-        drawEnergyBars()
     else
-        -- Draw sprites backwards
-        drawEnergyBars()
-        for i = 0x1F, 0x10, -1 do
-            drawEnemySprite(i)
-        end
-        for i = 0xF, 0, -1 do
-            drawPlayerSprite(i)
-        end
+         -- Draw sprites backwards
+         for i = #drawFuncs, 1, -1 do
+            drawFuncs[i](false)
+         end
     end
-
+    
 end
 
 local function drawSpritesFrozen()
