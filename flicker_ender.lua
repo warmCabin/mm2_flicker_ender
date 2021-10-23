@@ -305,7 +305,7 @@ local function drawSpritesNormal()
     -- Disabling it screws screws with TASEditor panning, leaving us with no
     -- actual sprites or flicker_ender sprites to look at.
     -- This issue stems from the usage of emu.getscreenpixel in tiledraw.lua,
-    -- so if I implement a nametable-inspecting getbgpixel function, it willl
+    -- so if I implement a nametable-inspecting getbgpixel function, it will
     -- go away!
     if not taseditor.engaged() then emu.setrenderplanes(false, true) end
     
