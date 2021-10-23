@@ -297,7 +297,7 @@ end
 local function drawSpritesNormal()
 
     --tdraw.clearBuffer()
-    emu.setrenderplanes(false, true) -- Disable emu sprite rendering to replace it with our own
+    -- emu.setrenderplanes(false, true) -- Disable emu sprite rendering to replace it with our own
     
     local frameCount = memory.readbyte(0x1C)
     if not args.alternating or frameCount % 2 == 0 then
@@ -337,11 +337,26 @@ local function drawSpritesMenuPopup()
     end
 end
 
--- TODO: gui.register?
+local prevFrameCount = 0
+
+-- TODO: emu.registerbefore? Might make the tdraw buffering a little less contrived.
 local function drawSprites()
     
     prevGameState = gameState
     gameState = memory.readbyte(0x01FE)
+    
+    -- Check if panning backwards, mainly to support TASEditor.
+    if emu.framecount() <= prevFrameCount then
+        tdraw.clearBuffer()
+        -- Workaround to clear FCEUX's buffer so previous flicker_ender frames don't persist.
+        -- No relation to the color "clear"!
+        gui.pixel(10, 10, "clear")
+        prevFrameCount = emu.framecount()
+        emu.setrenderplanes(true, true)
+        return
+    end
+    
+    prevFrameCount = emu.framecount()
     
     tdraw.renderBuffer()
 
