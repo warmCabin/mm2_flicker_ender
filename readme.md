@@ -4,9 +4,9 @@ Reimplements a few of Rockman 2's drawing routines in Lua to overcome the 64-spr
 
 Only compatible with **Rockman 2** for now. Not Mega Man 2, not Super Mario Bros. 2, not Rockman 3. Just Rockman 2. Mega Man 2 support should eventually be possible. The tiledraw script is more general purpose, and could be reused in a project like this for a different game.
 
-# Command Line args
+# Arguments
 
-There are a few command line arguments you can specify to tweak the drawing order to your liking.
+There are a few arguments you can specify in the script window to tweak the drawing order to your liking.
 
 ```
 Usage: flicker_ender.lua [-h]
