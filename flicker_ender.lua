@@ -51,16 +51,15 @@ local SPRITE_FLAGS = 0x0420
 local SPRITE_IDS = 0x0400
 local SPRITE_CEL_NUMS = 0x06A0
 
-local ENEMY_MAIN_GFX_PTRS_LO = 0xF980
-local ENEMY_MAIN_GFX_PTRS_HI = 0xFA80
+local ENEMY_ANIM_PTRS_LO = 0xF980
+local ENEMY_ANIM_PTRS_HI = 0xFA80
 local ENEMY_CEL_PTRS_LO = 0x8100
 local ENEMY_CEL_PTRS_HI = 0x8300
 
--- TODO: rename the rest of these...?
-local PLAYER_MAIN_GFX_PTRS_LO = 0xF900
-local PLAYER_MAIN_GFX_PTRS_HI = 0xFA00
-local PLAYER_FRAME_GFX_PTRS_LO = 0x8000
-local PLAYER_FRAME_GFX_PTRS_HI = 0x8200
+local PLAYER_ANIM_PTRS_LO = 0xF900
+local PLAYER_ANIM_PTRS_HI = 0xFA00
+local PLAYER_CEL_PTRS_LO = 0x8000
+local PLAYER_CEL_PTRS_HI = 0x8200
 
 local SPRITE_CEL_POS_PATTERN_PTRS_LO = 0x8400
 local SPRITE_CEL_POS_PATTERN_PTRS_HI = 0x8500
@@ -113,13 +112,12 @@ local function getPtr(hiTable, loTable, index)
     return bit.bor(bit.lshift(memory.readbyte(hiTable + index), 8), memory.readbyte(loTable + index))
 end
 
--- TODO: drawCel
-local function drawGfx(gfxPtr, spriteSlot, spriteFlags, attributeOverride)
+local function drawCel(celPtr, spriteSlot, spriteFlags, attributeOverride)
 
-    if debugMode then print(string.format("GFX ROUTINE: $%04X - %02X, %02X", gfxPtr, spriteSlot, attributeOverride)) end
+    if debugMode then print(string.format("GFX ROUTINE: $%04X - %02X, %02X", celPtr, spriteSlot, attributeOverride)) end
 
-    local length = memory.readbyte(gfxPtr)
-    local posSeq = memory.readbyte(gfxPtr + 1)
+    local length = memory.readbyte(celPtr)
+    local posSeq = memory.readbyte(celPtr + 1)
     local posPtr = getPtr(SPRITE_CEL_POS_PATTERN_PTRS_HI, SPRITE_CEL_POS_PATTERN_PTRS_LO, posSeq)
     local baseX = bit.band(memory.readbyte(0x0460 + spriteSlot) - memory.readbyte(0x1F), 0xFF) -- world pos - scroll
     local baseY = memory.readbyte(0x04A0 + spriteSlot)
@@ -127,11 +125,11 @@ local function drawGfx(gfxPtr, spriteSlot, spriteFlags, attributeOverride)
     local j = 2
     
     for i = 1, length do
-        if debugMode then print(string.format("Tile #%d: %02X, %02X, %02X, %02X", i - 1, memory.readbyte(gfxPtr + j), memory.readbyte(posPtr + j + 1), memory.readbyte(posPtr + j), memory.readbyte(gfxPtr + j + 1))) end
-        local tile = memory.readbyte(gfxPtr + j)
+        if debugMode then print(string.format("Tile #%d: %02X, %02X, %02X, %02X", i - 1, memory.readbyte(celPtr + j), memory.readbyte(posPtr + j + 1), memory.readbyte(posPtr + j), memory.readbyte(celPtr + j + 1))) end
+        local tile = memory.readbyte(celPtr + j)
         local y = bit.band(memory.readbyte(posPtr + j) + baseY, 0xFF) -- 8 bit addition
         j = j + 1
-        local attributes = memory.readbyte(gfxPtr + j)
+        local attributes = memory.readbyte(celPtr + j)
         if debugMode then print(string.format("base gfx attributes: %02X", attributes)) end
         if attributeOverride ~= 0 then
             if debugMode then print(string.format("overriding with %02X", attributeOverride)) end
@@ -182,16 +180,16 @@ local function drawPlayerSprite(slot)
     if debugMode then  print(string.format("DRAWING SLOT %02X (%02X)", slot, flags)) end
     
     local id = memory.readbyte(SPRITE_IDS + slot)
-    local ptr = getPtr(PLAYER_MAIN_GFX_PTRS_HI, PLAYER_MAIN_GFX_PTRS_LO, id)
-    local frame = memory.readbyte(SPRITE_CEL_NUMS + slot)
-    local frameId = memory.readbyte(ptr + frame + 2)
+    local ptr = getPtr(PLAYER_ANIM_PTRS_HI, PLAYER_ANIM_PTRS_LO, id)
+    local celNum = memory.readbyte(SPRITE_CEL_NUMS + slot)
+    local celId = memory.readbyte(ptr + celNum + 2)
     
     if debugMode then print(string.format("main gfx ptr: $%04X", ptr)) end
-    if debugMode then print(string.format("draw frame %02X", frameId)) end
+    if debugMode then print(string.format("draw celNum %02X", celId)) end
     
     -- There are some details here in the real code concerning animation timers which we don't care about.
     
-    if frameId == 0 then return end
+    if celId == 0 then return end
     
     -- Special cases for Mega Man and bosses
     if slot == 0 then
@@ -216,14 +214,14 @@ local function drawPlayerSprite(slot)
             -- Flicker boss on and off every 2 frames
             local frameCount = memory.readbyte(0x1C)
             if bit.band(frameCount, 2) == 0 then -- Double check this logic.
-                frameId = 0x18 -- Crash star for blinking invincibility
+                celId = 0x18 -- Crash star for blinking invincibility
             end
         end
     end
     
-    ptr = getPtr(PLAYER_FRAME_GFX_PTRS_HI, PLAYER_FRAME_GFX_PTRS_LO, frameId)
+    ptr = getPtr(PLAYER_CEL_PTRS_HI, PLAYER_CEL_PTRS_LO, celId)
     if debugMode then print(string.format("draw ptr: $%04X", ptr)) end
-    drawGfx(ptr, slot, flags, 0)
+    drawCel(ptr, slot, flags, 0)
     
 end
 
@@ -236,24 +234,24 @@ local function drawEnemySprite(slot)
     
     -- might pass some of these as params
     local id = memory.readbyte(SPRITE_IDS + slot)
-    local ptr = getPtr(ENEMY_MAIN_GFX_PTRS_HI, ENEMY_MAIN_GFX_PTRS_LO, id)
-    local frame = memory.readbyte(SPRITE_CEL_NUMS + slot)
-    local frameId = memory.readbyte(ptr + frame + 2)
+    local ptr = getPtr(ENEMY_ANIM_PTRS_HI, ENEMY_ANIM_PTRS_LO, id)
+    local celNum = memory.readbyte(SPRITE_CEL_NUMS + slot)
+    local celId = memory.readbyte(ptr + celNum + 2)
     
     if debugMode then print(string.format("main gfx ptr: $%04X", ptr)) end
-    if debugMode then print(string.format("draw frame %02X", frameId)) end
+    if debugMode then print(string.format("draw celNum %02X", celId)) end
     
     -- There are some details here in the real code concerning animation timers which we don't care about.
     
-    if frameId == 0 then return end
+    if celId == 0 then return end
     
     if bit.band(flags, 0x20) ~= 0 then return end
     if debugMode then print("(visible)") end
     
-    ptr = getPtr(ENEMY_CEL_PTRS_HI, ENEMY_CEL_PTRS_LO, frameId)
+    ptr = getPtr(ENEMY_CEL_PTRS_HI, ENEMY_CEL_PTRS_LO, celId)
     if debugMode then print(string.format("draw ptr: $%04X", ptr)) end
     local attributeOverride = memory.readbyte(0x0100 + slot)
-    drawGfx(ptr, slot, flags, attributeOverride)
+    drawCel(ptr, slot, flags, attributeOverride)
 end
 
 local normalGfx = false
@@ -287,20 +285,19 @@ local function drawPlayerSprites(forward)
     end
 end
 
+local drawFuncs
+if args.order == "canonical" then
+    drawFuncs = {drawPlayerSprites, drawEnemySprites, drawEnergyBars}
+elseif args.order == "health-bars-in-front" then
+    drawFuncs = {drawEnergyBars, drawPlayerSprites, drawEnemySprites}
+else
+    error("Somehow, an invalid --order option got through.")
+end
+
 local function drawSpritesNormal()
 
     --tdraw.clearBuffer()
     emu.setrenderplanes(false, true) -- Disable emu sprite rendering to replace it with our own
-    
-    -- TODO: make this global
-    local drawFuncs
-    if args.order == "canonical" then
-        drawFuncs = {drawPlayerSprites, drawEnemySprites, drawEnergyBars}
-    elseif args.order == "health-bars-in-front" then
-        drawFuncs = {drawEnergyBars, drawPlayerSprites, drawEnemySprites}
-    else
-        error("WTF")
-    end
     
     local frameCount = memory.readbyte(0x1C)
     if not args.alternating or frameCount % 2 == 0 then
@@ -383,10 +380,6 @@ local function drawSprites()
     
 end
 
-local function postFrame()
-    
-end
-
 local function normalGfxRoutineCallback(address, bank)
     normalGfx = true
     local status, err = pcall(drawSpritesNormal)
@@ -449,7 +442,6 @@ local function registerAddressBanked(address, bank, callback)
     memory.registerexec(address, bankDecorator(address, bank, callback))
 end
 
--- gui.register(drawSprites)
 emu.registerafter(drawSprites)
 
 registerAddressBanked(0xCC8B, 0xF, normalGfxRoutineCallback)
