@@ -1,4 +1,4 @@
-# Rockman 2 Flicker Ender
+# Overview
 
 Reimplements a few of Rockman 2's drawing routines in Lua to overcome the 64-sprite limitation. The goal of this script is to draw the exact tiles the game would have drawn if OAM was infinite.
 
