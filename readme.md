@@ -10,16 +10,17 @@ There are a few arguments you can specify in the script window to tweak the draw
 
 ```
 Usage: flicker_ender.lua [-h]
-       [--order {canonical,health-bars-in-front}] [--debug]
-       [--alternating]
+       [--order {canonical,health-bars-in-front}] [--alternating]
+       [--debug] [--verbose]
 
 Options:
    -h, --help            Show this help message and exit.
    --order {canonical,health-bars-in-front},
         -o {canonical,health-bars-in-front}
                          Sprite drawing order (default: health-bars-in-front)
-   --debug, -d           Enable debug mode. Offset draws and print LOTS of info!
    --alternating, -a     Alternate drawing order every frame
+   --debug, -d           Enable debug mode. Offset draws and print LOTS of info!
+   --verbose, -v         Enable verbose printing. WARNING: very slow!
 ```
 
 ## Orderings
