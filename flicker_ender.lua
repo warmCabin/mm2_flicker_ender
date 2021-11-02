@@ -5,8 +5,8 @@ local argparse = require "argparse"
 local parser = argparse()
 
 parser:option "--order -o"
-    :choices {"canonical", "health-bars-in-front"}
-    :default "health-bars-in-front" -- Let the user pass a permutation? o_o PhE
+    :choices {"canonical", "recommended"}
+    :default "recommended" -- Let the user pass a permutation? o_o PhE
     :description "Sprite drawing order"
     
 parser:flag "--alternating -a"
@@ -277,24 +277,29 @@ local function drawEnemySprites(forward)
     end
 end
 
+local playerOrder
+
 local function drawPlayerSprites(forward)
     local start, stop, step
     if forward then
-        start, stop, step = 0, 0xF, 1
+        start, stop, step = 1, 16, 1
     else
-        start, stop, step = 0xF, 0, -1
+        start, stop, step = 16, 1, -1
     end
     
     for i = start, stop, step do
-        drawPlayerSprite(i)
+        local slot = playerOrder[i]
+        drawPlayerSprite(slot)
     end
 end
 
 local drawFuncs
 if args.order == "canonical" then
     drawFuncs = {drawPlayerSprites, drawEnemySprites, drawEnergyBars}
-elseif args.order == "health-bars-in-front" then
+    playerOrder = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF}
+elseif args.order == "recommended" then
     drawFuncs = {drawEnergyBars, drawPlayerSprites, drawEnemySprites}
+    playerOrder = {0, 2, 3, 4, 5, 6, 7, 8, 9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 1}
 else
     error("Somehow, an invalid --order option got through.")
 end
