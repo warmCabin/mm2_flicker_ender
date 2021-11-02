@@ -404,7 +404,7 @@ local function drawSprites()
         pauseMenuInit = false
     else
         if debugMode then gui.text(100, 10, "None") end
-        -- No recognized drawing routine was called. Re-enabled emulator sprites just in case.
+        -- No recognized drawing routine was called. Re-enable emulator sprites just in case.
         -- Could try to detect the scroll init state instead of lumping it in with None
        emu.setrenderplanes(true, true)
     end
@@ -437,7 +437,7 @@ local function menuInitRoutineCallback()
 end
 
 local function ppuRegCallback(address, size, value)
-    -- print(string.format("Wrote to $%04X: #$%02X", address, value))
+    if args.verbose then print(string.format("Wrote to $%04X: #$%02X", address, value)) end
     if address == 0x2000 then
         tdraw.updatePpuCtrl(value)
     elseif address == 0x2001 then
@@ -454,7 +454,7 @@ end
 
 -- This is EXTREMELY Mega Man 2 specific, sadly. I happen to know that it uses the MMC1 mode
 -- that always maps F to $C000 - $FFFF and swaps 0 - E into $8000 - $BFFF. I also happen to know
--- that is uses $29 as an in-memory mirror for the current low-address bank number.
+-- that it uses $29 as an in-memory mirror for the current low-address bank number.
 -- Could be onto something good here if we could read the mapper state.
 -- FCEUX has an internal function that provides this information; should expose it to Lua.
 function getBank()
@@ -489,3 +489,7 @@ registerAddressBanked(0x90EF, 0xD, menuInitRoutineCallback) -- This is just the 
 registerAddressBanked(0xD016, 0xF, oamDmaCallback)
 
 memory.registerwrite(0x2000, 7, ppuRegCallback)
+
+emu.registerexit(function()
+    emu.setrenderplanes(true, true)
+end)
