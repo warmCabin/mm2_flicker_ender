@@ -312,7 +312,7 @@ local function drawSpritesNormal()
     -- This issue stems from the usage of emu.getscreenpixel in tiledraw.lua,
     -- so if I implement a nametable-inspecting getbgpixel function, it will
     -- go away!
-    if not taseditor.engaged() then emu.setrenderplanes(false, true) end
+    if not debugMode and not taseditor.engaged() then emu.setrenderplanes(false, true) end
     
     local frameCount = memory.readbyte(0x1C)
     if not args.alternating or frameCount % 2 == 0 then
@@ -344,12 +344,8 @@ end
 local prevGameState = memory.readbyte(0x01FE)
 
 local function drawSpritesMenuPopup()
-    -- This routine is reused by menu popup and scrolling. Since I don't feel like reverse engineering that right now,
-    -- I'm using hacky gamestate jank until I do.
-    if gameState ~= 156 and prevGameState ~= 156 then
-        tdraw.clearBuffer()
-        emu.setrenderplanes(true, true) -- Re-enable sprites. No need to simulate the pause menu graphics.
-    end
+    tdraw.clearBuffer() -- Clear OAM so stale graphics don't show during menu popup
+    emu.setrenderplanes(true, true) -- Re-enable sprites. No need to simulate the pause menu graphics.
 end
 
 local prevFrameCount = 0
@@ -377,12 +373,11 @@ local function drawSprites()
 
     -- Health bar sometimes appears one frame before it's supposed to in boss fights.
     --   Has to do with that one lag frame you sometimes get. Is there another callback to look for?
-    -- Objects persist during the end credits and on READY screen. Just need to do a gamestate check.
     -- When the emulator itself renders objects, we get back-prioity issues. Try implementing priority correctly first.
     -- Blue "Buster energy" can be seen during 1 frame of loading lag. Basically my garbage is different than their garbage.
     
-    if gameState == 78 or gameState == 120 or gameState == 129 or gameState == 195 or gameState == 197 then
-        if debugMode then gui.text(100, 10, "Get equipped/Castle/Death") end
+    if gameState == 78 or gameState == 120 or gameState == 129 or gameState == 195 or gameState == 197 or gameState == 112 or gameState == 82 then
+        if debugMode then gui.text(100, 10, "Defer to game") end
         tdraw.clearBuffer()
         emu.setrenderplanes(true, true)
     elseif normalGfx then
@@ -399,7 +394,7 @@ local function drawSprites()
         --emu.setrenderplanes(true, true)
         pauseMenuGfx = false
     elseif pauseMenuInit then
-        if debugMode then gui.text(100, 10, "Menu routine") end
+        if debugMode then gui.text(100, 10, "Pause menu init") end
         drawSpritesMenuPopup()
         pauseMenuInit = false
     else
