@@ -141,7 +141,9 @@ local function drawCel(celPtr, spriteSlot, spriteFlags, attributeOverride)
                 attributes = newAttr
             end
         end
-        if memory.readbyte(0x2A) == 1 then
+        -- If we're on Airman's stage, set the priority bit on all sprites.
+        -- Some hacks override this stage number, e.g. Rockman2Min, so get it directly from the code for maximum compatibility.
+        if memory.readbyte(0x2A) == memory.readbyte(0xCCE5) then
             attributes = bit.bor(attributes, 0x20)
         end
         if args.verbose then print(string.format("merged attributes: %02X", attributes)) end
