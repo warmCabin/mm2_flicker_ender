@@ -11,15 +11,14 @@ Only compatible with **Rockman 2** for now. Not Mega Man 2, not Super Mario Bros
 There are a few arguments you can specify in the script window to tweak the drawing order to your liking.
 
 ```
-Usage: flicker_ender.lua [-h]
-       [--order {canonical,health-bars-in-front}] [--alternating]
-       [--debug] [--verbose]
+Usage: flicker_ender.lua [-h] [--order {canonical,recommended}]
+       [--alternating] [--debug] [--verbose]
 
 Options:
    -h, --help            Show this help message and exit.
-   --order {canonical,health-bars-in-front},
-        -o {canonical,health-bars-in-front}
-                         Sprite drawing order (default: health-bars-in-front)
+   --order {canonical,recommended},
+        -o {canonical,recommended}
+                         Sprite drawing order (default: recommended)
    --alternating, -a     Alternate drawing order every frame
    --debug, -d           Enable debug mode. Offset rendering and draw some info to the screen
    --verbose, -v         Enable verbose printing. WARNING: very slow!
@@ -28,10 +27,10 @@ Options:
 ## Orderings
 
 - Canonical: The order of objects as laid out in memory. Health bars appear behind everything else.
-- Health Bars in Front: Canonical order, but health bars are in front.
+- Recommended: A modified drawing order that I think looks best. Health bars appear in front of everything else, and bosses are shifted to draw behind Mega Man's projectiles.
 
 ## Alternating
 
-The `alternating` flag respects the specfied drawing order and reverses it every frame, in case a set drawing order unnerves you!  
+The `alternating` flag respects the specfied drawing order and reverses it every frame, in case a set drawing order unnerves you! I recognize that enforcing a set drawing order on a game that does not have one can lead to some visibility issues.  
 Try `--order canonical --alternating` (or `-ao canonical` if you prefer) to get as close to the real game as possible.
 
