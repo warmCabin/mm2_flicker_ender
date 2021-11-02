@@ -21,7 +21,7 @@ Options:
         -o {canonical,health-bars-in-front}
                          Sprite drawing order (default: health-bars-in-front)
    --alternating, -a     Alternate drawing order every frame
-   --debug, -d           Enable debug mode. Offset draws and print LOTS of info!
+   --debug, -d           Enable debug mode. Offset rendering and draw some info to the screen
    --verbose, -v         Enable verbose printing. WARNING: very slow!
 ```
 
