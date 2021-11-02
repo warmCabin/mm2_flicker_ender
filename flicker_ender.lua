@@ -40,6 +40,8 @@ else
     args = result
 end
 
+print("Putting an end to flicker...")
+
 debugMode = args.debug
 
 -- TODO: no draw and re enable sprites when panning backwards
@@ -338,7 +340,7 @@ local function drawSpritesFrozen()
     --tdraw.clearBuffer()
     -- I think this works because the frozen draw routine is the same code as the regular draw routine, but animation timers aren't incremented.
     -- This script is only interested in reading whatever animation data the game is producing, so it has no need for that information.
-    drawSpritesNormal() -- TODO: This will probably break when I implement drawPlayerSprite
+    drawSpritesNormal()
 end
 
 local function drawSpritesPauseMenu()
@@ -378,8 +380,8 @@ local function drawSprites()
 
     -- Health bar sometimes appears one frame before it's supposed to in boss fights.
     --   Has to do with that one lag frame you sometimes get. Is there another callback to look for?
+    -- Actually, true lag frames seem to always advance the animation state prematurely. Can probably be fixed with an emu.registerbefore solution.
     -- When the emulator itself renders objects, we get back-prioity issues. Try implementing priority correctly first.
-    -- Blue "Buster energy" can be seen during 1 frame of loading lag. Basically my garbage is different than their garbage.
     
     if gameState == 78 or gameState == 120 or gameState == 129 or gameState == 195 or gameState == 197 or gameState == 112 or gameState == 82 then
         if debugMode then gui.text(100, 10, "Defer to game") end
@@ -404,8 +406,9 @@ local function drawSprites()
         pauseMenuInit = false
     else
         if debugMode then gui.text(100, 10, "None") end
+        -- No recognized drawing routine was called. Re-enabled emulator sprites just in case.
         -- Could try to detect the scroll init state instead of lumping it in with None
-       emu.setrenderplanes(true, true) -- Re-enable sprites. No need to simulate the pause menu graphics.
+       emu.setrenderplanes(true, true)
     end
     
 end
