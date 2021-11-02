@@ -4,6 +4,8 @@ mm2_flicker_ender reimplements a few of Rockman 2's drawing routines in Lua to o
 
 Only compatible with **Rockman 2** for now. Not Mega Man 2, not Super Mario Bros. 2, not Rockman 3. Just Rockman 2. Mega Man 2 support should eventually be possible. The tiledraw script is more general purpose, and could be reused in a project like this for a different game.
 
+[Video explanation](https://www.youtube.com/watch?v=ua4mlVy9x1Y)
+
 # Arguments
 
 There are a few arguments you can specify in the script window to tweak the drawing order to your liking.
