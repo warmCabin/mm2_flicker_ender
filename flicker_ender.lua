@@ -37,7 +37,7 @@ else
     args = result
 end
 
-local debugMode = args.debug
+debugMode = args.debug
 
 -- TODO: no draw and re enable sprites when panning backwards
 -- turn sprites back on on exit

@@ -167,7 +167,7 @@ end
 local OAM_LIMIT = 32000
 
 function mod.renderBuffer()
-    local offset = debugMode and 0 or 0
+    local offset = debugMode and 10 or 0
     -- Draw in reverse order because that's how the NES priotizes sprites
     local count = 0
     for i = #prevOam, 1, -1 do
