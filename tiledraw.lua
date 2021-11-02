@@ -118,6 +118,7 @@ local function drawRow(x, y, row, attributes)
     end
 end
 
+-- Draw tile immediately.
 -- Currently only supports 8x8 mode.
 -- Priority bit is based on color rather than opacity of pixel.
 -- The back-priority sprite obscurring quirk is not implemented.
@@ -145,7 +146,9 @@ end
 
 local oam = {}
 local prevOam = {}
+local ppuOam = {}
 
+-- Write tile to OAM buffer.
 function mod.bufferDraw(y, attributes, index, x)
     -- TODO: OAM_LIMIT checks here?
     table.insert(oam, {
@@ -161,22 +164,35 @@ function mod.clearBuffer()
     prevOam = {}
 end
 
+-- Flush buffer to pretend PPU.
+-- prevOam is in sync with the mock OAM that the game stores at $0200, but that buffer isn't always flushed to the PPU every
+-- frame, namely during lag. This function should be called when you know an OAMDMA will take place.
+function mod.flushBuffer()
+    -- Copy value-by-value in case of subsequent modifications to the buffer
+    ppuOam = {}
+    for i, v in ipairs(prevOam) do
+        ppuOam[i] = v
+    end
+end
+
 -- With this nonsense in place, you can observe the exact flicker as if you had "Allow more than 8 sprites per scanline" checked.
 -- Need to make this override canonical order (that's a caller problem, not tiledraw's problem!).
 -- TODO: provide an API to set this
 local OAM_LIMIT = 32000
 
+-- Render to screen what the pretend PPU knows
 function mod.renderBuffer()
     local offset = debugMode and 10 or 0
     -- Draw in reverse order because that's how the NES priotizes sprites
     local count = 0
-    for i = #prevOam, 1, -1 do
-        local entry = prevOam[i]
+    for i = #ppuOam, 1, -1 do
+        local entry = ppuOam[i]
         mod.drawTile(entry.y + offset, entry.attributes, entry.index, entry.x + offset)
         count = count + 1
         if count == OAM_LIMIT then break end
     end
-    if debugMode then gui.text(10, 10, #prevOam, #prevOam > 64 and "red" or "white") end
+    if debugMode then gui.text(10, 10, #ppuOam, #ppuOam > 64 and "red" or "white") end
+    -- if oam is empty, that probably means nothing was drawn and we shouldn't delete it yet.
     if #oam ~= 0 then
         prevOam = oam
         oam = {}

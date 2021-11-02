@@ -357,7 +357,6 @@ end
 
 local prevFrameCount = 0
 
--- TODO: emu.registerbefore? Might make the tdraw buffering a little less contrived.
 local function drawSprites()
     
     prevGameState = gameState
@@ -376,11 +375,10 @@ local function drawSprites()
     
     prevFrameCount = emu.framecount()
     
+    -- Render buffer every frame. This corresponds to what the PPU should have,
+    -- which is managed by flushing the buffer in the OAMDMA callback.
     tdraw.renderBuffer()
 
-    -- Health bar sometimes appears one frame before it's supposed to in boss fights.
-    --   Has to do with that one lag frame you sometimes get. Is there another callback to look for?
-    -- Actually, true lag frames seem to always advance the animation state prematurely. Can probably be fixed with an emu.registerbefore solution.
     -- When the emulator itself renders objects, we get back-prioity issues. Try implementing priority correctly first.
     
     if gameState == 78 or gameState == 120 or gameState == 129 or gameState == 195 or gameState == 197 or gameState == 112 or gameState == 82 then
@@ -447,6 +445,13 @@ local function ppuRegCallback(address, size, value)
     end
 end
 
+local function oamDmaCallback()
+    local status, err = pcall(tdraw.flushBuffer)
+    if not status then
+        print(string.format("Error! %s", err))
+    end
+end
+
 -- This is EXTREMELY Mega Man 2 specific, sadly. I happen to know that it uses the MMC1 mode
 -- that always maps F to $C000 - $FFFF and swaps 0 - E into $8000 - $BFFF. I also happen to know
 -- that is uses $29 as an in-memory mirror for the current low-address bank number.
@@ -481,5 +486,6 @@ registerAddressBanked(0xCC8B, 0xF, normalGfxRoutineCallback)
 registerAddressBanked(0xCD02, 0xF, timeFrozenGfxRoutineCallback)
 registerAddressBanked(0x9396, 0xD, pauseMenuGfxRoutineCallback)
 registerAddressBanked(0x90EF, 0xD, menuInitRoutineCallback) -- This is just the address where it clears OAM. More analysis needed.
+registerAddressBanked(0xD016, 0xF, oamDmaCallback)
 
 memory.registerwrite(0x2000, 7, ppuRegCallback)
