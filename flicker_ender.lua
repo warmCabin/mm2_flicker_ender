@@ -13,7 +13,7 @@ parser:flag "--alternating -a"
     :description "Alternate drawing order every frame"
     
 parser:flag "--debug -d"
-    :description "Enable debug mode. Offset draws and print LOTS of info!"
+    :description "Enable debug mode. Offset rendering and draw some info to the screen"
 parser:flag "--verbose -v"
     :description "Enable verbose printing. WARNING: very slow!"
 
