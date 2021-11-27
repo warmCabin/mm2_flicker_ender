@@ -40,8 +40,6 @@ else
     args = result
 end
 
-print("Putting an end to flicker...")
-
 debugMode = args.debug
 
 -- TODO: no draw and re enable sprites when panning backwards
@@ -301,7 +299,7 @@ if args.order == "canonical" then
     playerOrder = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF}
 elseif args.order == "recommended" then
     drawFuncs = {drawEnergyBars, drawPlayerSprites, drawEnemySprites}
-    playerOrder = {0, 2, 3, 4, 5, 6, 7, 8, 9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 1}
+    playerOrder = {0, 2, 3, 4, 5, 6, 7, 8, 9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 1} -- TODO: Mega Man projectiles on top of him?
 else
     error("Somehow, an invalid --order option got through.")
 end
@@ -490,6 +488,10 @@ registerAddressBanked(0xD016, 0xF, oamDmaCallback)
 
 memory.registerwrite(0x2000, 7, ppuRegCallback)
 
+-- Restore drawing to normal when exiting script
 emu.registerexit(function()
     emu.setrenderplanes(true, true)
 end)
+
+local verbs = {"Ending", "Putting an end to", "Removing", "Obliterating", "Smashing", "Destroying", "Murdering", "Killing", "Annihilating", "Decimating", "Unflicking", "Cancelling", "Defeating", "Hey, I actually prefer", "Deleting", "Forcibly ceasing"}
+print(verbs[math.random(#verbs)].." flicker...")
