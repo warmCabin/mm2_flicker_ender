@@ -1,5 +1,10 @@
 local bit = require("bit")
 
+-- The PPU API, which is necessary for this script, was not introduced until FCEUX 2.3.0.
+-- 2.3.0 also fixed an issue where memory.registerwrite callbacks would not receive the value written,
+-- which affects this script in a more indirect way.
+assert(ppu, "\n\ntiledraw.lua requires FCEUX 2.3.0 or later.")
+
 local mod = {}
 
 local patternTable = 0
