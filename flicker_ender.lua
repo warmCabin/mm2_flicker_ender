@@ -111,10 +111,11 @@ local function drawEnergyBar(energy, x, palette)
     end
 end
 
+-- TODO: Hack repositioning compatibility? Wrong palette?
 local function drawEnergyBars()
     
     local health = memory.readbyte(0x06C0)
-    drawEnergyBar(health, 0x18, 1)
+    drawEnergyBar(health, 0x18, 1) -- TODO: Grab these X values from ROM to support relocation in hacks
     
     local equippedWeapon = memory.readbyte(0xA9)
     if equippedWeapon ~= 0 then
@@ -559,8 +560,8 @@ emu.registerafter(drawSprites)
 registerAddressBanked(0xCC8B, 0xF, normalGfxRoutineCallback)
 registerAddressBanked(0xCD02, 0xF, timeFrozenGfxRoutineCallback)
 registerAddressBanked(0x9396, 0xD, pauseMenuGfxRoutineCallback)
-registerAddressBanked(0x90EF, 0xD, menuInitRoutineCallback) -- This is just the address where it clears OAM. More analysis needed.
-registerAddressBanked(0xD016, 0xF, oamDmaCallback)
+registerAddressBanked(0x90EF, 0xD, menuInitRoutineCallback)
+registerAddressBanked(0xD016, 0xF, oamDmaCallback) -- This is just the address where it clears OAM. More analysis needed.
 
 memory.registerwrite(0x2000, 7, ppuRegCallback)
 
