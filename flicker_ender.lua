@@ -4,14 +4,29 @@ local argparse = require "argparse"
 
 local parser = argparse()
 
+-- Let the user pass a permutation? o_o PhE
 parser:option "--order -o"
     :choices {"canonical", "recommended"}
-    :default "recommended" -- Let the user pass a permutation? o_o PhE
     :description "Sprite drawing order"
     
-parser:flag "--alternating -a"
-    :description "Alternate drawing order every frame"
+parser:option "--shuffle -s"
+    :choices {"alternating", "cyclic", "none"}
+    :default "alternating"
+    :description "What type of sprite shuffling to use. The real game code uses alternating."
     
+parser:option "--oam-limit -l"
+    :convert(function(str)
+        local n = tonumber(str)
+        if not n or n <= 0 or n ~= math.floor(n) then
+            return nil, "num sprites be a positive integer."
+        end
+        return n
+    end)
+    :argname "<num sprites>"
+    :description "Limit for the imitation OAM. 64 is the NES default. Use this if you want to make flicker WORSE!"
+    
+parser:flag "--disable-i-frame-flicker -i"
+    :description("Whether Mega Man and bosses should flicker on and off during i-frames")
 parser:flag "--debug -d"
     :description "Enable debug mode. Offset rendering and draw some info to the screen"
 parser:flag "--verbose -v"
@@ -40,7 +55,13 @@ else
     args = result
 end
 
+-- args prost-processing
 debugMode = args.debug
+local drawOrder = args.order or (args.shuffle == "none" and "recommended" or "canonical")
+
+if args.oam_limit then
+    tdraw.setOamLimit(args.oam_limit)
+end
 
 -- TODO: no draw and re enable sprites when panning backwards
 -- turn sprites back on on exit
@@ -203,7 +224,7 @@ local function drawPlayerSprite(slot)
         if iFrames ~= 0 then
             -- Flicker Mega Man on and off every 2 frames
             local frameCount = memory.readbyte(0x1C)
-            if bit.band(frameCount, 2) ~= 0 then
+            if not args.disable_i_frame_flicker and bit.band(frameCount, 2) ~= 0 then
                 return
             end
         end
@@ -218,7 +239,7 @@ local function drawPlayerSprite(slot)
         if iFrames ~= 0 then
             -- Flicker boss on and off every 2 frames
             local frameCount = memory.readbyte(0x1C)
-            if bit.band(frameCount, 2) == 0 then -- Double check this logic.
+            if not args.disable_i_frame_flicker and bit.band(frameCount, 2) == 0 then -- Double check this logic.
                 celId = 0x18 -- Crash star for blinking invincibility
             end
         end
@@ -293,15 +314,65 @@ local function drawPlayerSprites(forward)
     end
 end
 
+local function drawPlayerSpritesR(shuffler)
+    for i = 0, 0xF do
+        local slot = (i + shuffler) % 0x10
+        drawPlayerSprite(slot)
+    end
+end
+
+local function drawEnemySpritesR(shuffler)
+    for i = 0x10, 0x1F do
+        local slot = (i - 0x10 + shuffler) % 0x10 + 0x10
+        drawEnemySprite(slot)
+    end
+end
+
+--[[
+    For a fixed drawing order, you would want to set certain rules and priorities for what draws on top of what.
+    Due to sprite flicker, this is not a problem the devs had to solve back in the day. My recommended drawing order
+    generally does what you'd expect (health bars obscure everything, Mega Man always on top, boss has enemy priority), 
+    but can still lead to annoying cases, e.g. a power-up obscured by a bullet. Maybe I'm overthinking this and a
+    slot-based order is exactly what they would have done!
+]]
 local drawFuncs
-if args.order == "canonical" then
+if drawOrder == "canonical" then
     drawFuncs = {drawPlayerSprites, drawEnemySprites, drawEnergyBars}
     playerOrder = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF}
-elseif args.order == "recommended" then
+elseif drawOrder == "recommended" then
     drawFuncs = {drawEnergyBars, drawPlayerSprites, drawEnemySprites}
-    playerOrder = {0, 2, 3, 4, 5, 6, 7, 8, 9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 1} -- TODO: Mega Man projectiles on top of him?
+    playerOrder = {0, 2, 3, 4, 5, 6, 7, 8, 9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 1} -- TODO: Put Mega Man's projectiles on top of him?
 else
     error("Somehow, an invalid --order option got through.")
+end
+
+local shuffler = 0
+
+local function drawSpritesReccaStyle()
+
+    local frameCount = memory.readbyte(0x1C)
+    local x = bit.band(frameCount, 3)
+    
+    if x == 0 then
+        drawEnergyBars()
+        drawPlayerSpritesR(shuffler)
+        drawEnemySpritesR(shuffler)
+    elseif x == 1 then
+        drawPlayerSpritesR(shuffler)
+        drawEnemySpritesR(shuffler)
+        drawEnergyBars()
+    elseif x == 2 then
+        drawPlayerSpritesR(shuffler)
+        drawEnergyBars()
+        drawEnemySpritesR(shuffler)
+    elseif x == 3 then
+        drawEnemySpritesR(shuffler)
+        drawPlayerSpritesR(shuffler)
+        drawEnergyBars()
+    end
+    
+    shuffler = (shuffler + 4) % 0x10
+    
 end
 
 local function drawSpritesNormal()
@@ -319,8 +390,13 @@ local function drawSpritesNormal()
     -- go away!
     if not debugMode and not taseditor.engaged() then emu.setrenderplanes(false, true) end
     
+    if args.shuffle == "cyclic" then
+        drawSpritesReccaStyle()
+        return
+    end
+    
     local frameCount = memory.readbyte(0x1C)
-    if not args.alternating or frameCount % 2 == 0 then
+    if args.shuffle == "none" or frameCount % 2 == 0 then
         -- Draw sprites forwards
         for _, func in ipairs(drawFuncs) do
             func(true)
