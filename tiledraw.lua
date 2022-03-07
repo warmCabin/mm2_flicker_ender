@@ -181,9 +181,12 @@ function mod.flushBuffer()
 end
 
 -- With this nonsense in place, you can observe the exact flicker as if you had "Allow more than 8 sprites per scanline" checked.
--- Need to make this override canonical order (that's a caller problem, not tiledraw's problem!).
 -- TODO: provide an API to set this
-local OAM_LIMIT = 32000
+local OAM_LIMIT = 64000
+
+function mod.setOamLimit(limit)
+    OAM_LIMIT = limit
+end
 
 -- Render to screen what the pretend PPU knows
 function mod.renderBuffer()
