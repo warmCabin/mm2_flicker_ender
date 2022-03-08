@@ -7,7 +7,7 @@ local parser = argparse()
 -- Let the user pass a permutation? o_o PhE
 parser:option "--order -o"
     :choices {"canonical", "recommended"}
-    :description "Sprite drawing order"
+    :description "Sprite drawing order. canonical = what the game does. recommended = tweaks to fix certain overlapping issues"
     
 parser:option "--shuffle -s"
     :choices {"alternating", "cyclic", "none"}
@@ -23,7 +23,7 @@ parser:option "--oam-limit -l"
         return n
     end)
     :argname "<num sprites>"
-    :description "Limit for the imitation OAM. 64 is the NES default. Use this if you want to make flicker WORSE!"
+    :description "Limit for the imitation OAM. 64 is the NES default, infinite is the flicker_ender default. Use this if you want to make flicker worse!"
     
 parser:flag "--disable-i-frame-flicker -i"
     :description("Whether Mega Man and bosses should flicker on and off during i-frames")
@@ -31,7 +31,7 @@ parser:flag "--debug -d"
     :description "Enable debug mode. Offset rendering and draw some info to the screen"
 parser:flag "--verbose -v"
     :count "0-3"
-    :description "Enable verbose printing. WARNING: very slow!"
+    :description "Enable verbose printing, up to 3 levels. WARNING: very slow!"
 
 -- Janky custom --help because we want to return from this script, not exit the emulator entirely (which os.exit does for some reason)
 -- Add to ffix?
