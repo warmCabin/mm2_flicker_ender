@@ -358,6 +358,7 @@ end
 
 local shuffler = 0
 
+-- This is how the game Recca does it.
 local function drawSpritesReccaStyle()
 
     local frameCount = memory.readbyte(0x1C)
@@ -381,6 +382,7 @@ local function drawSpritesReccaStyle()
         drawEnergyBars()
     end
     
+    -- Incrementing by anything less than 4 (or by a number that doesn't divide 16) is a bit of an eyesore.
     shuffler = (shuffler + 4) % 0x10
     
 end
@@ -402,6 +404,10 @@ local function drawSpritesNormal()
     -- go away!
     if not debugMode and not taseditor.engaged() then emu.setrenderplanes(false, true) end
     
+    -- Alternating shuffle will make two or three things flicker on and off when you start to go over.
+    -- It's good when you're a bit over the limit.
+    -- Cyclic shuffle will give everything its turn flicked off.
+    -- It's good when you're WAY over the limit.
     if args.shuffle == "cyclic" then
         drawSpritesReccaStyle()
         return
