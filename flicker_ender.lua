@@ -313,6 +313,9 @@ local function drawPlayerSprites(forward)
         start, stop, step = 1, 16, 1
     else
         start, stop, step = 16, 1, -1
+        if args.order == "recommended" then
+            stop = 2
+        end
     end
     
     for i = start, stop, step do
@@ -412,6 +415,9 @@ local function drawSpritesNormal()
         end
     else
          -- Draw sprites backwards
+         if args.order == "recommended" then
+            drawPlayerSprite(0) -- always draw Mega Man on top
+         end
          for i = #drawFuncs, 1, -1 do
             drawFuncs[i](false)
          end
