@@ -181,7 +181,6 @@ function mod.flushBuffer()
 end
 
 -- With this nonsense in place, you can observe the exact flicker as if you had "Allow more than 8 sprites per scanline" checked.
--- TODO: provide an API to set this
 local OAM_LIMIT = 64000
 
 function mod.setOamLimit(limit)
@@ -192,12 +191,9 @@ end
 function mod.renderBuffer()
     local offset = debugMode and 10 or 0
     -- Draw in reverse order because that's how the NES priotizes sprites
-    local count = 0
-    for i = #ppuOam, 1, -1 do
+    for i = math.min(#ppuOam, OAM_LIMIT), 1, -1 do
         local entry = ppuOam[i]
         mod.drawTile(entry.y + offset, entry.attributes, entry.index, entry.x + offset)
-        count = count + 1
-        if count == OAM_LIMIT then break end
     end
     if debugMode then gui.text(10, 10, #ppuOam, #ppuOam > 64 and "red" or "white") end
     -- if oam is empty, that probably means nothing was drawn and we shouldn't delete it yet.
