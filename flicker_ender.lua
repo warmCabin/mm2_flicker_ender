@@ -64,8 +64,6 @@ if args.oam_limit then
     tdraw.setOamLimit(args.oam_limit)
 end
 
--- TODO: no draw and re enable sprites when panning backwards
--- turn sprites back on on exit
 if args.verbose >= 1 then print(string.format("shuffle: %s, drawOrder: %s", args.shuffle, drawOrder)) end
 
 -- For Mega Man 2, most of these addresses probably need to be adjusted.
@@ -113,11 +111,11 @@ local function drawEnergyBar(energy, x, palette)
     end
 end
 
--- TODO: Hack repositioning compatibility? Wrong palette?
+-- TODO: Grab X positions and boss palettes from ROM to support changes in hacks
 local function drawEnergyBars()
     
     local health = memory.readbyte(0x06C0)
-    drawEnergyBar(health, 0x18, 1) -- TODO: Grab these X values from ROM to support relocation in hacks
+    drawEnergyBar(health, 0x18, 1)
     
     local equippedWeapon = memory.readbyte(0xA9)
     if equippedWeapon ~= 0 then
@@ -253,8 +251,8 @@ local function drawPlayerSprite(slot)
     end
     
     ptr = getPtr(PLAYER_CEL_PTRS_HI, PLAYER_CEL_PTRS_LO, celId)
-    drawCel(ptr, slot, flags, 0)
     if args.verbose >= 1 then print(string.format("cel ptr: $%04X", ptr)) end
+    drawCel(ptr, slot, flags, 0) -- Are there really no attribute overrides for player sprites?
     
 end
 
