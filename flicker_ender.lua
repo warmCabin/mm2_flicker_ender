@@ -30,6 +30,7 @@ parser:flag "--disable-i-frame-flicker -i"
 parser:flag "--debug -d"
     :description "Enable debug mode. Offset rendering and draw some info to the screen"
 parser:flag "--verbose -v"
+    :count "0-3"
     :description "Enable verbose printing. WARNING: very slow!"
 
 -- Janky custom --help because we want to return from this script, not exit the emulator entirely (which os.exit does for some reason)
@@ -65,6 +66,7 @@ end
 
 -- TODO: no draw and re enable sprites when panning backwards
 -- turn sprites back on on exit
+if args.verbose >= 1 then print(string.format("shuffle: %s, drawOrder: %s", args.shuffle, drawOrder)) end
 
 -- For Mega Man 2, most of these addresses probably need to be adjusted.
 
@@ -139,7 +141,7 @@ end
 
 local function drawCel(celPtr, spriteSlot, spriteFlags, attributeOverride)
 
-    if args.verbose then print(string.format("GFX ROUTINE: $%04X - %02X, %02X", celPtr, spriteSlot, attributeOverride)) end
+    if args.verbose >= 2 then print(string.format("GFX ROUTINE: $%04X - %02X, %02X", celPtr, spriteSlot, attributeOverride)) end
 
     local length = memory.readbyte(celPtr)
     local posSeq = memory.readbyte(celPtr + 1)
@@ -150,14 +152,14 @@ local function drawCel(celPtr, spriteSlot, spriteFlags, attributeOverride)
     local j = 2
     
     for i = 1, length do
-        if args.verbose then print(string.format("Tile #%d: %02X, %02X, %02X, %02X", i - 1, memory.readbyte(celPtr + j), memory.readbyte(posPtr + j + 1), memory.readbyte(posPtr + j), memory.readbyte(celPtr + j + 1))) end
+        if args.verbose >= 3 then print(string.format("Tile #%d: %02X, %02X, %02X, %02X", i - 1, memory.readbyte(celPtr + j), memory.readbyte(posPtr + j + 1), memory.readbyte(posPtr + j), memory.readbyte(celPtr + j + 1))) end
         local tile = memory.readbyte(celPtr + j)
         local y = bit.band(memory.readbyte(posPtr + j) + baseY, 0xFF) -- 8 bit addition
         j = j + 1
         local attributes = memory.readbyte(celPtr + j)
-        if args.verbose then print(string.format("base gfx attributes: %02X", attributes)) end
+        if args.verbose >= 3 then print(string.format("base gfx attributes: %02X", attributes)) end
         if attributeOverride ~= 0 then
-            if args.verbose then print(string.format("overriding with %02X", attributeOverride)) end
+            if args.verbose >= 3 then print(string.format("overriding with %02X", attributeOverride)) end
             local newAttr = bit.bor(bit.band(attributes, 0xF0), attributeOverride)
             if newAttr ~= 0 then
                 attributes = newAttr
@@ -168,29 +170,31 @@ local function drawCel(celPtr, spriteSlot, spriteFlags, attributeOverride)
         if memory.readbyte(0x2A) == memory.readbyte(0xCCE5) then
             attributes = bit.bor(attributes, 0x20)
         end
-        if args.verbose then print(string.format("merged attributes: %02X", attributes)) end
+        if args.verbose >= 3 then print(string.format("merged attributes: %02X", attributes)) end
         -- Flip tile if gfx data says tile is flipped.
         attributes = bit.bxor(spriteFlip, attributes)
         local xOffset = memory.readbyte(posPtr + j)
-        if args.verbose then print(string.format("sprite flip: %02X. new attr: %02x", spriteFlip, attributes)) end
-        if args.verbose then print(string.format("base x offset: %02X", xOffset)) end
-        if args.verbose then print(string.format("pos x: %02X", baseX)) end
+        if args.verbose >= 3 then
+            print(string.format("sprite flip: %02X. new attr: %02x", spriteFlip, attributes))
+            print(string.format("base x offset: %02X", xOffset))
+            print(string.format("pos x: %02X", baseX))
+        end
         if spriteFlip ~= 0 then
             -- Flipped draw (need to compute alternate X coord)
             -- This table just represents the operation -(x + 8), but might as well do it authentically.
             xOffset = memory.readbyte(TILE_OFFSET_SUBTRACTION_TABLE + xOffset)
         end
-        if args.verbose then print(string.format("x offset: %02X", xOffset)) end
+        if args.verbose >= 3 then print(string.format("x offset: %02X", xOffset)) end
         -- 8-bit addition
         local x = baseX + xOffset
-        if args.verbose then print(string.format("x: %02X", x)) end
+        if args.verbose >= 3 then print(string.format("x: %02X", x)) end
         local carry = x > 0xFF
-        if args.verbose then print("carry: "..tostring(carry)) end
+        if args.verbose >= 3 then print("carry: "..tostring(carry)) end
         x = bit.band(x, 0xFF) 
-        if args.verbose then print(string.format("band x: %02X", x)) end
+        if args.verbose >= 3 then print(string.format("band x: %02X", x)) end
         if carry == (xOffset >= 0x80) then
             -- No overflow; tile onscreen
-            if args.verbose then print(string.format("Draw tile: %02X, %02X, %02X, %02X", y, attributes, tile, x)) end
+            if args.verbose >= 3 then print(string.format("Draw tile: %02X, %02X, %02X, %02X", y, attributes, tile, x)) end
             tdraw.bufferDraw(y, attributes, tile, x)
         else
             -- Overflow; tile offscreen
@@ -204,15 +208,17 @@ local function drawPlayerSprite(slot)
     local flags = memory.readbyte(SPRITE_FLAGS + slot)
     
     if flags < 0x80 then return end
-    if args.verbose then  print(string.format("DRAWING SLOT %02X (%02X)", slot, flags)) end
+    if args.verbose >= 1 then print(string.format("DRAWING SLOT %02X (%02X)", slot, flags)) end
     
     local id = memory.readbyte(SPRITE_IDS + slot)
     local ptr = getPtr(PLAYER_ANIM_PTRS_HI, PLAYER_ANIM_PTRS_LO, id)
     local celNum = memory.readbyte(SPRITE_CEL_NUMS + slot)
     local celId = memory.readbyte(ptr + celNum + 2)
     
-    if args.verbose then print(string.format("main gfx ptr: $%04X", ptr)) end
-    if args.verbose then print(string.format("draw celNum %02X", celId)) end
+    if args.verbose >= 1 then
+        print(string.format("main anim ptr: $%04X", ptr))
+        print(string.format("draw celNum %02X", celId))
+    end
     
     -- There are some details here in the real code concerning animation timers which we don't care about.
     
@@ -247,8 +253,8 @@ local function drawPlayerSprite(slot)
     end
     
     ptr = getPtr(PLAYER_CEL_PTRS_HI, PLAYER_CEL_PTRS_LO, celId)
-    if args.verbose then print(string.format("draw ptr: $%04X", ptr)) end
     drawCel(ptr, slot, flags, 0)
+    if args.verbose >= 1 then print(string.format("cel ptr: $%04X", ptr)) end
     
 end
 
@@ -257,7 +263,7 @@ local function drawEnemySprite(slot)
     local flags = memory.readbyte(SPRITE_FLAGS + slot)
     
     if flags < 0x80 then return end
-    if args.verbose then print(string.format("DRAWING SLOT %02X (%02X)", slot, flags)) end
+    if args.verbose >= 1 then print(string.format("DRAWING SLOT %02X (%02X)", slot, flags)) end
     
     -- might pass some of these as params
     local id = memory.readbyte(SPRITE_IDS + slot)
@@ -265,18 +271,20 @@ local function drawEnemySprite(slot)
     local celNum = memory.readbyte(SPRITE_CEL_NUMS + slot)
     local celId = memory.readbyte(ptr + celNum + 2)
     
-    if args.verbose then print(string.format("main gfx ptr: $%04X", ptr)) end
-    if args.verbose then print(string.format("draw celNum %02X", celId)) end
+    if args.verbose >= 1 then
+        print(string.format("main anim ptr: $%04X", ptr))
+        print(string.format("draw celNum %02X", celId))
+    end
     
     -- There are some details here in the real code concerning animation timers which we don't care about.
     
     if celId == 0 then return end
     
     if bit.band(flags, 0x20) ~= 0 then return end
-    if args.verbose then print("(visible)") end
+    if args.verbose >= 1 then print("(visible)") end
     
     ptr = getPtr(ENEMY_CEL_PTRS_HI, ENEMY_CEL_PTRS_LO, celId)
-    if args.verbose then print(string.format("draw ptr: $%04X", ptr)) end
+    if args.verbose >= 1 then print(string.format("cel ptr: $%04X", ptr)) end
     local attributeOverride = memory.readbyte(0x0100 + slot)
     drawCel(ptr, slot, flags, attributeOverride)
 end
@@ -377,6 +385,8 @@ local function drawSpritesReccaStyle()
 end
 
 local function drawSpritesNormal()
+
+    if args.verbose >= 1 then print(string.format("=== %d - Drawing sprites ===", emu.framecount())) end
 
     -- tdraw.clearBuffer()
     
@@ -512,7 +522,7 @@ local function menuInitRoutineCallback()
 end
 
 local function ppuRegCallback(address, size, value)
-    if args.verbose then print(string.format("Wrote to $%04X: #$%02X", address, value)) end
+    if args.verbose >= 3 then print(string.format("Wrote to $%04X: #$%02X", address, value)) end
     if address == 0x2000 then
         tdraw.updatePpuCtrl(value)
     elseif address == 0x2001 then
