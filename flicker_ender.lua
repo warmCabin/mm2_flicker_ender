@@ -319,6 +319,9 @@ local function drawPlayerSprites(forward)
     else
         start, stop, step = 16, 1, -1
         if args.order == "recommended" then
+            -- Make sure Mega Man and the boss aren't redrawn.
+            -- Relies on specific knowledge of the recommended playerOrder list...
+            start = 15
             stop = 2
         end
     end
@@ -425,13 +428,15 @@ local function drawSpritesNormal()
             func(true)
         end
     else
-         -- Draw sprites backwards
-         if args.order == "recommended" then
-            drawPlayerSprite(0) -- always draw Mega Man on top
-         end
-         for i = #drawFuncs, 1, -1 do
+        -- Draw sprites backwards
+        if args.order == "recommended" then
+           drawPlayerSprite(0) -- always draw Mega Man on top
+           drawPlayerSprite(1) -- Then draw the boss
+           -- The health bar still alternates priority with them, though. Is that a good thing? I can't decide...
+        end
+        for i = #drawFuncs, 1, -1 do
             drawFuncs[i](false)
-         end
+        end
     end
     
 end
