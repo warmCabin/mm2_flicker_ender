@@ -7,7 +7,7 @@ local parser = argparse()
 -- Let the user pass a permutation? o_o PhE
 parser:option "--order -o"
     :choices {"canonical", "recommended"}
-    :description "Sprite drawing order. canonical = what the game does. recommended = tweaks to fix certain overlapping issues"
+    :description "Sprite drawing order. canonical = what the game does. recommended = tweaks to fix certain overlapping issues. If unspecified, will be chosen based on shuffle."
     
 parser:option "--shuffle -s"
     :choices {"alternating", "cyclic", "none"}
@@ -23,10 +23,10 @@ parser:option "--oam-limit -l"
         return n
     end)
     :argname "<num sprites>"
-    :description "Limit for the imitation OAM. 64 is the NES default, infinite is the flicker_ender default. Use this if you want to make flicker worse!"
+    :description "Limit for the imitation OAM. Will be infinite if unspecified (recommended). 64 is the NES default. Use this if you want to make flicker worse!"
     
 parser:flag "--disable-i-frame-flicker -i"
-    :description("Whether Mega Man and bosses should flicker on and off during i-frames")
+    :description("Whether Mega Man and bosses should flicker during i-frames")
 parser:flag "--debug -d"
     :description "Enable debug mode. Offset rendering and draw some info to the screen"
 parser:flag "--verbose -v"
