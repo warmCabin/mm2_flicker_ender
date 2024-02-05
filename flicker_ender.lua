@@ -227,9 +227,14 @@ local function drawPlayerSprite(slot)
         -- Mega Man
         local iFrames = memory.readbyte(0x4B)
         if iFrames ~= 0 then
-            -- Flicker Mega Man on and off every 2 frames
             local frameCount = memory.readbyte(0x1C)
-            if not args.disable_i_frame_flicker and bit.band(frameCount, 2) ~= 0 then
+            if args.disable_i_frame_flicker then
+                -- The knockback animation has a crash star as one of its cels. To disable this, just set it back to the regular knockback pose.
+                if celId == 0x18 then
+                    celId = 0x7
+                end
+            elseif bit.band(frameCount, 2) ~= 0 then
+                -- Flicker Mega Man on and off every 2 frames
                 return
             end
         end
@@ -242,10 +247,10 @@ local function drawPlayerSprite(slot)
         -- Boss
         local iFrames = memory.readbyte(0x05A8)
         if iFrames ~= 0 then
-            -- Flicker boss on and off every 2 frames
             local frameCount = memory.readbyte(0x1C)
-            if not args.disable_i_frame_flicker and bit.band(frameCount, 2) == 0 then -- Double check this logic.
-                celId = 0x18 -- Crash star for blinking invincibility
+            if not args.disable_i_frame_flicker and bit.band(frameCount, 2) == 0 then
+                -- Bosses don't have a knockback animation. Instead, their animation cel is overridden with a crash star 2 out of every 4 frames.
+                celId = 0x18
             end
         end
     end
