@@ -275,7 +275,7 @@ local function drawPlayerSprite(slot)
     
     ptr = getPtr(PLAYER_CEL_PTRS_HI, PLAYER_CEL_PTRS_LO, celId)
     if args.verbose >= 1 then print(string.format("cel ptr: $%04X", ptr)) end
-    drawCel(ptr, slot, flags, 0) -- Are there really no attribute overrides for player sprites?
+    drawCel(ptr, slot, flags, 0) -- There are no attribute overrides for player sprites.
     
 end
 
@@ -294,7 +294,7 @@ local function drawEnemySprite(slot)
     
     if args.verbose >= 1 then
         print(string.format("main anim ptr: $%04X", ptr))
-        print(string.format("draw celNum %02X", celId))
+        print(string.format("draw celId %02X", celId))
     end
     
     -- There are some details here in the real code concerning animation timers which we don't care about.
