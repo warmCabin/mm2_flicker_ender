@@ -189,11 +189,11 @@ end
 
 -- Render to screen what the pretend PPU knows
 function mod.renderBuffer()
-    local offset = debugMode and 10 or 0
+    local offset = debugMode and 32 or 0
     -- Draw in reverse order because that's how the NES priotizes sprites
     for i = math.min(#ppuOam, OAM_LIMIT), 1, -1 do
         local entry = ppuOam[i]
-        mod.drawTile(entry.y + offset, entry.attributes, entry.index, entry.x + offset)
+        mod.drawTile(entry.y, entry.attributes, entry.index, entry.x + offset)
     end
     if debugMode then gui.text(10, 10, #ppuOam, #ppuOam > 64 and "red" or "white") end
     -- if oam is empty, that probably means nothing was drawn and we shouldn't delete it yet.
