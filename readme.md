@@ -2,7 +2,7 @@
 
 mm2_flicker_ender reimplements a few of Rockman 2's drawing routines in Lua to overcome the 64-sprite limitation. The goal of this script is to draw the exact tiles the game would have drawn if OAM was infinite.
 
-Only compatible with **Rockman 2** for now. Not Mega Man 2, not Super Mario Bros. 2, not Rockman 3. Just Rockman 2. Mega Man 2 support should eventually be possible. The tiledraw script is more general purpose, and could be reused in a project like this for a different game.
+Only compatible with **Rockman 2** for now. Not Mega Man 2, not Super Mario Bros. 2, not Rockman 3. Just Rockman 2. Mega Man 2 support should eventually be possible. The tiledraw script is more general purpose, and could be reused in a project like this for a [different game](https://www.youtube.com/watch?v=r04V_D3qn2I).
 
 [Video explanation](https://www.youtube.com/watch?v=ua4mlVy9x1Y)
 
@@ -21,15 +21,15 @@ Options:
    -h, --help            Show this help message and exit.
    --order {canonical,recommended},
         -o {canonical,recommended}
-                         Sprite drawing order. canonical = what the game does. recommended = tweaks to fix certain overlapping issues
+                         Sprite drawing order. canonical = what the game does. recommended = tweaks to fix certain overlapping issues. If unspecified, will be chosen based on shuffle.
    --shuffle {alternating,cyclic,none},
           -s {alternating,cyclic,none}
                          What type of sprite shuffling to use. The real game code uses alternating. (default: alternating)
    --oam-limit <num sprites>,
             -l <num sprites>
-                         Limit for the imitation OAM. 64 is the NES default, infinite is the flicker_ender default. Use this if you want to make flicker worse!
+                         Limit for the imitation OAM. Will be infinite if unspecified (recommended). 64 is the NES default. Use this if you want to make flicker worse!
    --disable-i-frame-flicker, -i
-                         Whether Mega Man and bosses should flicker on and off during i-frames
+                         Whether Mega Man and bosses should flicker during i-frames
    --debug, -d           Enable debug mode. Offset rendering and draw some info to the screen
    --verbose, -v         Enable verbose printing, up to 3 levels. WARNING: very slow!
 ```
@@ -55,4 +55,4 @@ Sets a limit for how many sprites can be drawn each frame. While this may seem a
 - You can set it to less than 64 for a good laugh
 
 ## Disable i-frame flicker
-An enhancement mainly for TASing. It turns off the 2-frame flicker that occurs during invincibility frames so you can better see what you're doing.
+An enhancement mainly for TASing. It turns off the 2-frame flicker and crash stars that occur during invincibility frames for Mega Man and bosses so you can better see what you're doing.
