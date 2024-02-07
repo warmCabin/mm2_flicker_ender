@@ -126,7 +126,7 @@ end
 -- Draw tile immediately.
 -- Currently only supports 8x8 mode.
 -- Priority bit is based on color rather than opacity of pixel.
--- The back-priority sprite obscurring quirk is not implemented.
+-- The back-priority sprite obscurring quirk is implemented.
 -- Tint bits are not implemented--they actually affect NTSC signal generation, but FCEUX stores them in an extended palette I think.
 -- Are tiles invisible when they should be?
 function mod.drawTile(y, attributes, index, x)
@@ -144,7 +144,7 @@ function mod.drawTile(y, attributes, index, x)
     local flipY = bit.band(attributes, 0x80) ~= 0
     for i = 0, 7 do
         local row = flipY and tileData[7 - i] or tileData[i]
-        drawRow(x, y + 1 + i, row, attributes)
+        drawRow(x, y + 1 + i, row, attributes) -- add 1 to y here because of the whole sprite scanline delay thing
     end
 
 end

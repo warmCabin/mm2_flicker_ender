@@ -66,7 +66,7 @@ end
 
 if args.verbose >= 1 then print(string.format("shuffle: %s, drawOrder: %s", args.shuffle, drawOrder)) end
 
--- For Mega Man 2, most of these addresses probably need to be adjusted.
+-- For Mega Man 2, most of these addresses probably need to be adjusted. Especially the callbacks at the bottom of the script.
 
 local HEALTH_BAR_Y_TABLE = 0xCFE2
 local HEALTH_BAR_TILES = 0xCFE9
@@ -92,7 +92,8 @@ local TILE_OFFSET_SUBTRACTION_TABLE = 0x8600
 local gameState = 0
 
 -- Another approach to this problem might be to force $06 (OAM counter) to always be 0 so the game always draws,
--- then monitor whatever it tries to write. But that would alter game function.
+-- then monitor whatever it tries to write. But that would alter game function. For instance, this value is used to
+-- set up the range of sprites that need to have their priority bit set in Airman's stage.
 
 local function drawEnergyBar(energy, x, palette)
     for i = 6, 0, -1 do
@@ -102,7 +103,7 @@ local function drawEnergyBar(energy, x, palette)
             tile = memory.readbyte(HEALTH_BAR_TILES + energy)
             energy = 0
         else
-            tile = 0x87
+            tile = 0x87 -- TODO: Grab this from ROM
             energy = energy - 4
         end
         
@@ -127,6 +128,9 @@ local function drawEnergyBars()
     if bossFlag ~= 0 then
         local bossIndex = memory.readbyte(0xB3)
         local bossHealth = memory.readbyte(0x06C1)
+        -- Most bosses use palette 3 for their health bars. But for Mecha Dragon and Alien (bosses 8 and D)
+        -- that would look really weird, mostly because there's no black outline color.
+        -- So these two bosses use palette 1, the ubiquitous face colors.
         local palette = (bossIndex == 8 or bossIndex == 0xD) and 1 or 3
         drawEnergyBar(bossHealth, 0x28, palette)
     end
@@ -137,6 +141,20 @@ local function getPtr(hiTable, loTable, index)
     return bit.bor(bit.lshift(memory.readbyte(hiTable + index), 8), memory.readbyte(loTable + index))
 end
 
+--[[
+  Note: attributeOverride should really be named paletteOverride. I overestimated its usefulness when I first discovered it.
+    Its intended design is: if it's nonzero (1-3), apply that palette to all tiles in the cel. It was exclusively used to turn enemies white (palette 1)
+    for 1 frame when you shoot them. In fact, it even doubles as an i-frames indicator.
+    
+    Notably, you can't override things to use palette 0, because 0 means no override. Except you can abuse the data a little bit. If you set one of the unused bits to 1,
+    the code will accept the override even if the palette is 0, and the unused bit will be safely ignored by the PPU.
+    
+    You can also override the priority bit to 1, but not override it to 0 if it was already 1.
+    You can do the same to the X and Y flip bits to garble the graphics in a fun way.
+    But you inadvertantly apply a palette override when you do either of these things, so just don't.
+    
+    Makes me wonder how they accomplished the sprite priority effects in the first game.
+]]
 local function drawCel(celPtr, spriteSlot, spriteFlags, attributeOverride)
 
     if args.verbose >= 2 then print(string.format("GFX ROUTINE: $%04X - %02X, %02X", celPtr, spriteSlot, attributeOverride)) end
@@ -215,7 +233,7 @@ local function drawPlayerSprite(slot)
     
     if args.verbose >= 1 then
         print(string.format("main anim ptr: $%04X", ptr))
-        print(string.format("draw celNum %02X", celId))
+        print(string.format("draw celId %02X", celId))
     end
     
     -- There are some details here in the real code concerning animation timers which we don't care about.
@@ -416,6 +434,7 @@ local function drawSpritesNormal()
     -- It's good when you're a bit over the limit.
     -- Cyclic shuffle will give everything its turn flicked off.
     -- It's good when you're WAY over the limit.
+    -- The order argument is mostly irrelevant to this technique, so just ignore it.
     if args.shuffle == "cyclic" then
         drawSpritesReccaStyle()
         return
@@ -443,7 +462,7 @@ end
 
 local function drawSpritesFrozen()
     --tdraw.clearBuffer()
-    -- I think this works because the frozen draw routine is the same code as the regular draw routine, but animation timers aren't incremented.
+    -- This works because the frozen draw routine is the same code as the regular draw routine, but animation timers aren't incremented.
     -- This script is only interested in reading whatever animation data the game is producing, so it has no need for that information.
     drawSpritesNormal()
 end
@@ -468,10 +487,11 @@ local function drawSprites()
     gameState = memory.readbyte(0x01FE)
     
     -- Check if panning backwards, mainly to support TASEditor.
+    -- TODO: if emu.framecount() ~= prevFrameCount + 1, to also check for forward jumps?
     if emu.framecount() <= prevFrameCount then
         tdraw.clearBuffer()
-        -- Workaround to clear FCEUX's buffer so previous flicker_ender frames don't persist.
-        -- No relation to the color "clear"!
+        -- Workaround to clear FCEUX's framebuffer so previous flicker_ender frames don't persist.
+        -- "clear" doesn't clear the buffer, it's just a clear pixel. This couldn't be more clear.
         gui.pixel(10, 10, "clear")
         prevFrameCount = emu.framecount()
         emu.setrenderplanes(true, true)
@@ -590,8 +610,8 @@ emu.registerafter(drawSprites)
 registerAddressBanked(0xCC8B, 0xF, normalGfxRoutineCallback)
 registerAddressBanked(0xCD02, 0xF, timeFrozenGfxRoutineCallback)
 registerAddressBanked(0x9396, 0xD, pauseMenuGfxRoutineCallback)
-registerAddressBanked(0x90EF, 0xD, menuInitRoutineCallback)
-registerAddressBanked(0xD016, 0xF, oamDmaCallback) -- This is just the address where it clears OAM. More analysis needed.
+registerAddressBanked(0x90EF, 0xD, menuInitRoutineCallback) -- Just after OAM has been cleared for the pause menu.
+registerAddressBanked(0xD016, 0xF, oamDmaCallback) -- Just when the NMI handler is initiating DMA.
 
 memory.registerwrite(0x2000, 7, ppuRegCallback)
 
