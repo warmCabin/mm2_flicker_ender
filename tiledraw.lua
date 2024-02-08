@@ -126,7 +126,7 @@ end
 -- Draw tile immediately.
 -- Currently only supports 8x8 mode.
 -- Priority bit is based on color rather than opacity of pixel.
--- The back-priority sprite obscurring quirk is not implemented.
+-- The back-priority sprite obscurring quirk is implemented.
 -- Tint bits are not implemented--they actually affect NTSC signal generation, but FCEUX stores them in an extended palette I think.
 -- Are tiles invisible when they should be?
 function mod.drawTile(y, attributes, index, x)
@@ -144,7 +144,7 @@ function mod.drawTile(y, attributes, index, x)
     local flipY = bit.band(attributes, 0x80) ~= 0
     for i = 0, 7 do
         local row = flipY and tileData[7 - i] or tileData[i]
-        drawRow(x, y + 1 + i, row, attributes)
+        drawRow(x, y + 1 + i, row, attributes) -- add 1 to y here because of the whole sprite scanline delay thing
     end
 
 end
@@ -181,20 +181,19 @@ function mod.flushBuffer()
 end
 
 -- With this nonsense in place, you can observe the exact flicker as if you had "Allow more than 8 sprites per scanline" checked.
--- Need to make this override canonical order (that's a caller problem, not tiledraw's problem!).
--- TODO: provide an API to set this
-local OAM_LIMIT = 32000
+local OAM_LIMIT = 64000
+
+function mod.setOamLimit(limit)
+    OAM_LIMIT = limit
+end
 
 -- Render to screen what the pretend PPU knows
 function mod.renderBuffer()
-    local offset = debugMode and 10 or 0
+    local offset = debugMode and 32 or 0
     -- Draw in reverse order because that's how the NES priotizes sprites
-    local count = 0
-    for i = #ppuOam, 1, -1 do
+    for i = math.min(#ppuOam, OAM_LIMIT), 1, -1 do
         local entry = ppuOam[i]
-        mod.drawTile(entry.y + offset, entry.attributes, entry.index, entry.x + offset)
-        count = count + 1
-        if count == OAM_LIMIT then break end
+        mod.drawTile(entry.y, entry.attributes, entry.index, entry.x + offset)
     end
     if debugMode then gui.text(10, 10, #ppuOam, #ppuOam > 64 and "red" or "white") end
     -- if oam is empty, that probably means nothing was drawn and we shouldn't delete it yet.
