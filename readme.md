@@ -45,7 +45,7 @@ Really only noticeable if shuffle = none.
 
 - None: Fixed drawing order. Uses the recommended order by default.
 - Alternating: Reverses the drawing order every frame, in case a set drawing order unnerves you! I recognize that enforcing a set drawing order on a game that does not have one can lead to some visibility issues. Uses canonical order by default.
-- Cyclic: Changes the first sprite drawn each frame, cycling every 4 frames (starts on 0, then 4, 8, 12). Uses canonical order by default.
+- Cyclic: Changes the first sprite drawn each frame, cycling every 4 frames (starts on 0, then 4, 8, 12). Always uses canonical order.
 
 ## OAM Limit
 
